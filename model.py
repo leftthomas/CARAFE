@@ -1,7 +1,8 @@
+import math
+
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
-import math
 
 
 class HWConv(nn.Module):
@@ -104,13 +105,11 @@ class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_channels=9, out_channels=32, kernel_size=(1, 9)),
-            nn.ReLU(),
+            WHConv(in_channels=9, out_channels=32, kernel_size=(1, 9)),
             nn.MaxPool2d(kernel_size=(1, 2), stride=2)
         )
         self.conv2 = nn.Sequential(
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(1, 9)),
-            nn.ReLU(),
+            HWConv(in_channels=32, out_channels=64, kernel_size=(1, 9)),
             nn.MaxPool2d(kernel_size=(1, 2), stride=2)
         )
         self.fc1 = nn.Sequential(
