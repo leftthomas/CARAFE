@@ -1,5 +1,5 @@
 # SCN
-A PyTorch implementation of Separate Convolutional Network based on the paper [Separate Convolutional Network for Audio Classification]().
+A PyTorch implementation of Separate Convolutional Network based on the paper [Separate Convolutional Network for Music Genre Classification]().
 
 ## Requirements
 - [Anaconda](https://www.anaconda.com/download/)
@@ -24,6 +24,7 @@ TODO
 ```
 visdom -logging_level WARNING & python train.py --num_epochs 200
 optional arguments:
+--data_type                   dataset type [default value is 'GTZAN'](choices=['GTZAN', 'Ballroom', 'EBallroom'])
 --batch_size                  train batch size [default value is 32]
 --num_epochs                  train epochs number [default value is 100]
 ```

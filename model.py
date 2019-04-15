@@ -104,7 +104,7 @@ class WHConv(nn.Module):
 
 class Model(nn.Module):
 
-    def __init__(self):
+    def __init__(self, num_classes):
         super(Model, self).__init__()
 
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=64, kernel_size=3, padding=1)
@@ -133,7 +133,7 @@ class Model(nn.Module):
         self.fc2 = nn.Linear(in_features=1024, out_features=256)
         self.drop2 = nn.Dropout(0.5)
 
-        self.fc3 = nn.Linear(in_features=256, out_features=10)
+        self.fc3 = nn.Linear(in_features=256, out_features=num_classes)
 
     def forward(self, inp):
         x = F.relu(self.bn1(self.conv1(inp)))
@@ -155,5 +155,5 @@ class Model(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.drop2(x)
 
-        x = F.log_softmax(self.fc3(x))
+        x = self.fc3(x)
         return x
