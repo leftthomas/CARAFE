@@ -1,5 +1,5 @@
 # SCN
-A PyTorch implementation of Separate Convolutional Network based on the paper [Separate Convolutional Network for Music Genre Classification]().
+A PyTorch implementation of Separable Convolutional Network based on the paper [Separable Convolutional Network for Music Genre Classification]().
 
 ## Requirements
 - [Anaconda](https://www.anaconda.com/download/)
@@ -33,4 +33,3 @@ Visdom now can be accessed by going to `127.0.0.1:8097` in your browser.
 ## Results
 The train loss、accuracy, test loss、accuracy are showed on visdom.
 ![result](results/mutag.png)
-
