@@ -12,15 +12,15 @@ from torch.utils.data import Dataset, DataLoader
 
 class MusicData(Dataset):
     def __init__(self, records):
-        self.samples = records['spectrogram']
+        self.samples = records['spectrogram'].values
         # prepare a mapping between the label names (strings) and indices (ints)
         self.label2index = {label: index for index, label in enumerate(sorted(records['genre'].unique()))}
         # convert the list of label names into an array of label indices
-        self.targets = np.array([self.label2index[label] for label in records['genre']], dtype=int)
+        self.targets = np.array([self.label2index[label] for label in records['genre'].values], dtype=int)
 
     def __getitem__(self, index):
         sample, target = self.samples[index], self.targets[index]
-        return torch.from_numpy(sample).unsqueeze(dim=0), torch.from_numpy(target)
+        return torch.from_numpy(sample.astype(np.float32)).unsqueeze(dim=0), torch.from_numpy(np.array(target))
 
     def __len__(self):
         return len(self.samples)
@@ -52,11 +52,11 @@ def load_data(data_type, batch_size=32):
     with open('data/{}.pkl'.format(data_type), 'rb') as infile:
         raw_data = pickle.load(infile)
 
-    train_records, test_records = train_test_split(raw_data, test_size=0.3, stratify=raw_data['genre'])
-    val_records, test_records = train_test_split(test_records, test_size=0.6, stratify=test_records['genre'])
+    train_records, test_records = train_test_split(raw_data, test_size=0.3, stratify=raw_data['genre'].values)
+    val_records, test_records = train_test_split(test_records, test_size=0.3, stratify=test_records['genre'].values)
     train_set, val_set, test_set = MusicData(train_records), MusicData(val_records), MusicData(test_records)
-    print('# {} dataset # train: {:d} val: {:d} test: {:d}'.format(data_type, len(train_records), len(val_records),
-                                                                   len(test_records)))
+    print('# {} dataset --- train: {:d} val: {:d} test: {:d}'.format(data_type, len(train_records), len(val_records),
+                                                                     len(test_records)))
 
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
