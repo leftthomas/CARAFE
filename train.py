@@ -109,17 +109,17 @@ if __name__ == '__main__':
     DATA_TYPE = opt.data_type
     BATCH_SIZE = opt.batch_size
     NUM_EPOCH = opt.num_epochs
-    NUM_CLASS = 10
     best_accuracy = 0
     DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     results = {'train_loss': [], 'train_accuracy': [], 'val_loss': [], 'val_accuracy': [], 'test_loss': [],
                'test_accuracy': []}
 
     train_loader, val_loader, test_loader = utils.load_data(data_type=DATA_TYPE, batch_size=BATCH_SIZE)
+    NUM_CLASS = len(train_loader.dataset.label2index)
     model = Model(NUM_CLASS).to(DEVICE)
     loss_criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters())
-    scheduler = ReduceLROnPlateau(optimizer, patience=5, verbose=True)
+    scheduler = ReduceLROnPlateau(optimizer, factor=0.2, patience=5, verbose=True)
     print("# parameters:", sum(param.numel() for param in model.parameters()))
 
     engine = Engine()
