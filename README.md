@@ -33,6 +33,15 @@ optional arguments:
 ```
 Visdom now can be accessed by going to `127.0.0.1:8097` in your browser.
 
+### Inference Music
+```
+python inference.py --music_name data/test.mp3
+optional arguments:
+--data_type                   dataset type [default value is 'GTZAN'](choices=['GTZAN', 'EBallroom'])
+--music_name                  test music name
+--model_name                  model epoch name [default value is 'GTZAN.pth']
+```
+
 ## Results
 The train/val/test loss、accuracy and confusion matrix are showed on visdom.
 
