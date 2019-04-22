@@ -11,25 +11,34 @@ conda install pytorch torchvision -c pytorch
 ```
 pip install git+https://github.com/pytorch/tnt.git@master
 ```
-- capsule-layer
+- librosa
 ```
-pip install git+https://github.com/leftthomas/CapsuleLayer.git@master
+pip install librosa
 ```
 
 ## Datasets
-TODO
+The datasets are coming from [GTZAN](http://marsyas.info/downloads/datasets.html) and 
+[EBallroom](http://anasynth.ircam.fr/home/media/ExtendedBallroom)
+Download these datasets and extract them into `data` directory.
 
 ## Usage
 ### Train Model
 ```
 visdom -logging_level WARNING & python train.py --num_epochs 200
 optional arguments:
---data_type                   dataset type [default value is 'GTZAN'](choices=['GTZAN', 'Ballroom', 'EBallroom'])
+--data_type                   dataset type [default value is 'GTZAN'](choices=['GTZAN', 'EBallroom'])
 --batch_size                  train batch size [default value is 32]
 --num_epochs                  train epochs number [default value is 100]
 ```
 Visdom now can be accessed by going to `127.0.0.1:8097` in your browser.
 
 ## Results
-The train loss、accuracy, test loss、accuracy are showed on visdom.
-![result](results/mutag.png)
+The train/val/test loss、accuracy and confusion matrix are showed on visdom.
+
+- GTZAN
+
+![result](results/gtzan.png)
+
+- EBallroom
+
+![result](results/eballroom.png)

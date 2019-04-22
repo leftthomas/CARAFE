@@ -101,8 +101,7 @@ def on_end_epoch(state):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Music Genre Classification Model')
-    parser.add_argument('--data_type', default='GTZAN', type=str, choices=['GTZAN', 'Ballroom', 'EBallroom'],
-                        help='dataset type')
+    parser.add_argument('--data_type', default='GTZAN', type=str, choices=['GTZAN', 'EBallroom'], help='dataset type')
     parser.add_argument('--batch_size', default=32, type=int, help='training batch size')
     parser.add_argument('--num_epochs', default=100, type=int, help='train epoch number')
 
