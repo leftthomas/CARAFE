@@ -19,7 +19,8 @@ pip install librosa
 ## Datasets
 The datasets are coming from [GTZAN](http://marsyas.info/downloads/datasets.html) and 
 [EBallroom](http://anasynth.ircam.fr/home/media/ExtendedBallroom)
-Download these datasets and extract them into `data` directory.
+Download these datasets and extract them into `data` directory. Make sure the dir names 
+are same with dataset names.
 
 ## Usage
 ### Train Model
