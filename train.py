@@ -100,15 +100,14 @@ def on_end_epoch(state):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Train Music Genre Classification Model')
-    parser.add_argument('--data_type', default='GTZAN', type=str, choices=['GTZAN', 'EBallroom'], help='dataset type')
+    parser = argparse.ArgumentParser(description='Train Acoustic Scene Classification Model')
+    parser.add_argument('--data_type', default='DCASE2018A', type=str,
+                        choices=['DCASE2018A', 'DCASE2018B', 'DCASE2019A', 'DCASE2019B'], help='dataset type')
     parser.add_argument('--batch_size', default=32, type=int, help='training batch size')
     parser.add_argument('--num_epochs', default=100, type=int, help='train epoch number')
 
     opt = parser.parse_args()
-    DATA_TYPE = opt.data_type
-    BATCH_SIZE = opt.batch_size
-    NUM_EPOCH = opt.num_epochs
+    DATA_TYPE, BATCH_SIZE, NUM_EPOCH = opt.data_type, opt.batch_size, opt.num_epochs
     best_accuracy = 0
     DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     results = {'train_loss': [], 'train_accuracy': [], 'val_loss': [], 'val_accuracy': [], 'test_loss': [],
