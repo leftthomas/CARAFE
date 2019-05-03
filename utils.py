@@ -1,13 +1,11 @@
 import os
-import pickle
 
+import dcase_util
 import numpy as np
 import torch
-from librosa.core import load
-from librosa.feature import melspectrogram
-from pandas import DataFrame
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader
+from tqdm import tqdm
 
 
 class MusicData(Dataset):
@@ -26,31 +24,45 @@ class MusicData(Dataset):
         return len(self.samples)
 
 
-def process_data(data_type):
-    print('processing {} dataset, this will take a while, but it will be done only once.'.format(data_type))
-    records = []
-    for genre in sorted(os.listdir(os.path.join('data', data_type))):
-        for track in sorted(os.listdir(os.path.join('data', data_type, genre))):
-            y, sr = load(os.path.join('data', data_type, genre, track), mono=True)
-            S = melspectrogram(y, sr).T
-            S = S[:-1 * (S.shape[0] % 128)]
-            num_chunk = S.shape[0] / 128
-            data_chunks = np.split(S, num_chunk)
-            data_chunks = [(data, genre) for data in data_chunks]
-            records.append(data_chunks)
+def process_data(data_set, data_type):
+    # prepare feature extractor
+    extractor = dcase_util.features.MelExtractor(fs=48000, fmax=24000)
+    # define feature storage path
+    features_path = 'data/{}/{}'.format(data_type, 'features')
+    # make sure path exists
+    dcase_util.utils.Path().create(features_path)
 
-    records = DataFrame.from_records([data for record in records for data in record],
-                                     columns=['spectrogram', 'genre'])
-    with open('data/{}.pkl'.format(data_type), 'wb') as outfile:
-        pickle.dump(records, outfile, pickle.HIGHEST_PROTOCOL)
-    print('{} dataset is processed'.format(data_type))
+    # loop over all audio files in the dataset and extract features for them.
+    for audio_filename in tqdm(data_set.audio_files, desc='processing data for {}'.format(data_type)):
+        # get filename for feature data from audio filename
+        feature_filename = os.path.join(features_path, os.path.split(audio_filename)[1].replace('.wav', '.cpickle'))
+        # load audio data
+        audio = dcase_util.containers.AudioContainer().load(filename=audio_filename, mono=True, fs=extractor.fs)
+        # extract features and store them into FeatureContainer, and save them to the disk
+        feature = dcase_util.containers.FeatureContainer(data=extractor.extract(audio.data), time_resolution=extractor
+                                                         .hop_length_seconds)
+        feature.save(filename=feature_filename)
 
 
 def load_data(data_type, batch_size=32):
-    if not os.path.exists('data/{}.pkl'.format(data_type)):
-        process_data(data_type)
-    with open('data/{}.pkl'.format(data_type), 'rb') as infile:
-        raw_data = pickle.load(infile)
+    if data_type == 'DCASE2018A':
+        data_set = dcase_util.datasets.TUTUrbanAcousticScenes_2018_DevelopmentSet(storage_name='raw_data',
+                                                                                  data_path='data/{}'.format(data_type))
+    elif data_type == 'DCASE2018B':
+        data_set = dcase_util.datasets.TUTUrbanAcousticScenes_2018_Mobile_DevelopmentSet(storage_name='raw_data',
+                                                                                         data_path='data/{}'.format(
+                                                                                             data_type))
+    elif data_type == 'DCASE2019A':
+        data_set = dcase_util.datasets.TAUUrbanAcousticScenes_2019_DevelopmentSet(storage_name='raw_data',
+                                                                                  data_path='data/{}'.format(data_type))
+    elif data_type == 'DCASE2019B':
+        data_set = dcase_util.datasets.TAUUrbanAcousticScenes_2019_Mobile_DevelopmentSet(storage_name='raw_data',
+                                                                                         data_path='data/{}'.format(
+                                                                                             data_type))
+    else:
+        raise NotImplementedError('{} is not implemented'.format(data_type))
+    data_set.initialize()
+    process_data(data_set, data_type)
 
     train_records, test_records = train_test_split(raw_data, test_size=0.3, stratify=raw_data['genre'].values)
     val_records, test_records = train_test_split(test_records, test_size=0.3, stratify=test_records['genre'].values)

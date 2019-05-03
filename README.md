@@ -11,16 +11,15 @@ conda install pytorch torchvision -c pytorch
 ```
 pip install git+https://github.com/pytorch/tnt.git@master
 ```
-- librosa
+- [DCASE UTIL](https://dcase-repo.github.io/dcase_util/index.html)
 ```
-pip install librosa
+pip install dcase_util
 ```
 
 ## Datasets
 The datasets are coming from [DCASE2018](http://dcase.community/challenge2018/) and 
-[DCASE2019](http://dcase.community/challenge2019/)
-Download these datasets and extract them into `data` directory. Make sure the dir names 
-are same with dataset names.
+[DCASE2019](http://dcase.community/challenge2019/). You needn't download them by yourself,
+they will be downloaded by code and extracted into `data` directory.
 
 ## Usage
 ### Train Model
