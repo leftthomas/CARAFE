@@ -1,7 +1,6 @@
 import math
 
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
 
 
@@ -101,37 +100,146 @@ class WHConv(nn.Module):
         return x
 
 
-class Model(nn.Module):
+class ResBlock(nn.Module):
+    r"""Single block for the ResNet network. Uses HWConv or WHConv in the standard ResNet
+    block layout (conv->batchnorm->ReLU->conv->batchnorm->sum->ReLU)
+    Args:
+        in_channels (int): Number of channels in the input tensor
+        out_channels (int): Number of channels produced by the convolution
+        kernel_size (int or tuple): Size of the convolving kernel
+        conv_type (Module, optional): Type of conv that is to be used to form the block. Default: HWConv
+        downsample (bool, optional): If ``True``, the output size is to be smaller than the input. Default: ``False``
+    """
 
-    def __init__(self, num_classes):
+    def __init__(self, in_channels, out_channels, kernel_size, conv_type=HWConv, downsample=False):
+        super(ResBlock, self).__init__()
+
+        self.downsample = downsample
+        kernel_size = _pair(kernel_size)
+        padding = (kernel_size[0] // 2, kernel_size[1] // 2)
+
+        if self.downsample:
+            # downsample with stride=2
+            self.conv1 = conv_type(in_channels, out_channels, kernel_size, padding=padding, stride=2, bias=False)
+            self.downsampleconv = conv_type(in_channels, out_channels, kernel_size=1, stride=2, bias=False)
+            self.downsamplebn = nn.BatchNorm2d(out_channels)
+        else:
+            self.conv1 = conv_type(in_channels, out_channels, kernel_size, padding=padding, bias=False)
+
+        self.bn1 = nn.BatchNorm2d(out_channels)
+
+        self.conv2 = conv_type(out_channels, out_channels, kernel_size, padding=padding, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        res = self.relu(self.bn1(self.conv1(x)))
+        res = self.bn2(self.conv2(res))
+
+        if self.downsample:
+            x = self.downsamplebn(self.downsampleconv(x))
+
+        return self.relu(x + res)
+
+
+class ResLayer(nn.Module):
+    r"""Forms a single layer of the ResNet network, with a number of repeating
+    blocks of same output size stacked on top of each other
+    Args:
+        in_channels (int): Number of channels in the input tensor.
+        out_channels (int): Number of channels in the output produced by the layer.
+        kernel_size (int or tuple): Size of the convolving kernels.
+        layer_size (int): Number of blocks to be stacked to form the layer
+        block_type (Module, optional): Type of block that is to be used to form the block. Default: HWConv
+        downsample (bool, optional): If ``True``, the first block in the layer will implement downsampling. Default: ``False``
+    """
+
+    def __init__(self, in_channels, out_channels, kernel_size, layer_size, block_type=HWConv, downsample=False):
+
+        super(ResLayer, self).__init__()
+
+        # implement the first block
+        self.block1 = ResBlock(in_channels, out_channels, kernel_size, block_type, downsample)
+
+        # prepare module list to hold all (layer_size - 1) blocks
+        self.blocks = nn.ModuleList([])
+        for i in range(layer_size - 1):
+            # all these blocks are identical
+            self.blocks += [ResBlock(out_channels, out_channels, kernel_size, block_type)]
+
+    def forward(self, x):
+        x = self.block1(x)
+        for block in self.blocks:
+            x = block(x)
+
+        return x
+
+
+class FeatureLayer(nn.Module):
+    r"""Forms a feature layer by initializing 5 layers, with the number of blocks in each layer set by layer_sizes,
+    and by performing a global average pool at the end producing a 512-dimensional vector for each element in the batch.
+    Args:
+        layer_sizes (tuple): An iterable containing the number of blocks in each layer
+        block_type (Module, optional): Type of block that is to be used to form the block. Default: HWConv
+    """
+
+    def __init__(self, layer_sizes, block_type=HWConv):
+        super(FeatureLayer, self).__init__()
+
+        self.conv1 = block_type(1, 64, (3, 7), stride=(1, 2), padding=(1, 3), bias=False)
+        self.conv2 = ResLayer(64, 64, (3, 7), layer_sizes[0], block_type=block_type)
+        self.conv3 = ResLayer(64, 128, (3, 7), layer_sizes[1], block_type=block_type, downsample=True)
+        self.conv4 = ResLayer(128, 256, (3, 7), layer_sizes[2], block_type=block_type, downsample=True)
+        self.conv5 = ResLayer(256, 512, (3, 7), layer_sizes[3], block_type=block_type, downsample=True)
+        self.pool = nn.AdaptiveAvgPool3d(1)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
+        x = self.pool(x)
+        x = x.view(x.size(0), -1)
+        return x
+
+
+class Model(nn.Module):
+    r"""Forms a complete two-stream ResNet classifier producing vectors of size num_classes, by initializing a feature
+    layers, and passing them through a Linear layer.
+    Args:
+        num_classes(int): Number of classes in the data
+        layer_sizes (tuple): An iterable containing the number of blocks in each layer
+    """
+
+    def __init__(self, num_classes, layer_sizes):
         super(Model, self).__init__()
 
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=7, padding=3)
-        self.bn1 = nn.BatchNorm2d(32)
-        self.pool1 = nn.MaxPool2d(kernel_size=5)
-        self.drop1 = nn.Dropout(0.3)
+        # HWConv Stream
+        self.feature_hw = FeatureLayer(layer_sizes, block_type=HWConv)
+        self.fc_hw = nn.Linear(512, num_classes)
+        # WHConv Stream
+        self.feature_wh = FeatureLayer(layer_sizes, block_type=WHConv)
+        self.fc_wh = nn.Linear(512, num_classes)
 
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=7, padding=3)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.pool2 = nn.MaxPool2d(kernel_size=(4, 100))
-        self.drop2 = nn.Dropout(0.3)
+        self.__init_weight()
 
-        self.fc1 = nn.Linear(in_features=128, out_features=100)
-        self.drop3 = nn.Dropout(0.3)
-        self.fc2 = nn.Linear(in_features=100, out_features=num_classes)
+    def forward(self, x):
+        # HWConv pipeline
+        x_hw = self.feature_hw(x)
+        logits_hw = self.fc_hw(x_hw)
 
-    def forward(self, inp):
-        x = F.relu(self.bn1(self.conv1(inp)))
-        x = self.pool1(x)
-        x = self.drop1(x)
+        # WHConv pipeline
+        x_wh = self.feature_wh(x)
+        logits_wh = self.fc_wh(x_wh)
 
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = self.pool2(x)
-        x = self.drop2(x)
+        logits = (logits_hw + logits_wh) / 2
+        return logits
 
-        x = x.view(x.size()[0], -1)
-        x = F.relu(self.fc1(x))
-        x = self.drop3(x)
-
-        x = self.fc2(x)
-        return x
+    def __init_weight(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)

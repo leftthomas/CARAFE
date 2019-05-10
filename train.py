@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     train_loader, val_loader, test_loader = utils.load_data(data_type=DATA_TYPE, batch_size=BATCH_SIZE)
     NUM_CLASS = len(train_loader.dataset.label2index)
-    model = Model(NUM_CLASS).to(DEVICE)
+    model = Model(NUM_CLASS, (2, 2, 2, 2)).to(DEVICE)
     loss_criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters())
     scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=10, verbose=True)
