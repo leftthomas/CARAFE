@@ -118,7 +118,7 @@ if __name__ == '__main__':
     model = Model(NUM_CLASS).to(DEVICE)
     loss_criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters())
-    scheduler = ReduceLROnPlateau(optimizer, factor=0.2, patience=5, verbose=True)
+    scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=10, verbose=True)
     print("# parameters:", sum(param.numel() for param in model.parameters()))
 
     engine = Engine()

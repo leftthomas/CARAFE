@@ -9,7 +9,7 @@ from dcase_util.datasets import TAUUrbanAcousticScenes_2019_Mobile_DevelopmentSe
     TAUUrbanAcousticScenes_2019_DevelopmentSet
 from dcase_util.features import MelExtractor
 from dcase_util.processors import FeatureReadingProcessor, NormalizationProcessor, DataShapingProcessor, \
-    SequencingProcessor, ProcessingChain
+    SequencingProcessor
 from dcase_util.utils import Path
 from pandas import DataFrame
 from torch.utils.data import Dataset, DataLoader
@@ -17,17 +17,19 @@ from tqdm import tqdm
 
 
 class MusicData(Dataset):
-    def __init__(self, data_list):
+    def __init__(self, data_list, data_type):
         self.samples = data_list['file_name'].values
         self.label2index = {label: index for index, label in enumerate(sorted(data_list['file_label'].unique()))}
         self.targets = np.array([self.label2index[label] for label in data_list['file_label'].values], dtype=int)
-        self.processor_chain = ProcessingChain([FeatureReadingProcessor(), NormalizationProcessor(
-            normalizer=Normalizer().load(filename='norm_factors.cpickle'))], SequencingProcessor(500, 500),
-                                               DataShapingProcessor())
+        self.frp = FeatureReadingProcessor()
+        self.np = NormalizationProcessor(filename='data/{}/{}'.format(data_type, 'norm_factors.cpickle'))
+        self.sp = SequencingProcessor(sequence_length=500, hop_length=500)
+        self.dsp = DataShapingProcessor(axis_list=['sequence_axis', 'data_axis', 'time_axis'])
 
     def __getitem__(self, index):
-        sample, target = self.processor_chain.process(FeatureContainer().load(self.samples[index])), self.targets[index]
-        return torch.from_numpy(sample.astype(np.float32)).unsqueeze(dim=0), torch.from_numpy(np.array(target))
+        sample = self.dsp.process(self.sp.process(self.np.process(self.frp.process(filename=self.samples[index]))))
+        target = self.targets[index]
+        return torch.from_numpy(sample.data.astype(np.float32)).unsqueeze(dim=0), torch.from_numpy(np.array(target))
 
     def __len__(self):
         return len(self.samples)
@@ -108,7 +110,8 @@ def load_data(data_type, batch_size=32):
     filtered_val = DataFrame.from_records(filtered_train)
     filtered_test = DataFrame.from_records(filtered_train)
 
-    train_set, val_set, test_set = MusicData(filtered_train), MusicData(filtered_val), MusicData(filtered_test)
+    train_set, val_set, test_set = MusicData(filtered_train, data_type), MusicData(filtered_val, data_type), MusicData(
+        filtered_test, data_type)
     print('# {} dataset --- train: {:d} val: {:d} test: {:d}'.format(data_type, len(train_files), len(val_files),
                                                                      len(test_files)))
 
