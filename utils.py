@@ -8,7 +8,10 @@ from dcase_util.datasets import TAUUrbanAcousticScenes_2019_Mobile_DevelopmentSe
     TUTUrbanAcousticScenes_2018_Mobile_DevelopmentSet, TUTUrbanAcousticScenes_2018_DevelopmentSet, \
     TAUUrbanAcousticScenes_2019_DevelopmentSet
 from dcase_util.features import MelExtractor
+from dcase_util.processors import FeatureReadingProcessor, NormalizationProcessor, DataShapingProcessor, \
+    SequencingProcessor, ProcessingChain
 from dcase_util.utils import Path
+from pandas import DataFrame
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
@@ -18,10 +21,12 @@ class MusicData(Dataset):
         self.samples = data_list['file_name'].values
         self.label2index = {label: index for index, label in enumerate(sorted(data_list['file_label'].unique()))}
         self.targets = np.array([self.label2index[label] for label in data_list['file_label'].values], dtype=int)
-        self.normalizer = Normalizer().load(filename='norm_factors.cpickle')
+        self.processor_chain = ProcessingChain([FeatureReadingProcessor(), NormalizationProcessor(
+            normalizer=Normalizer().load(filename='norm_factors.cpickle'))], SequencingProcessor(500, 500),
+                                               DataShapingProcessor())
 
     def __getitem__(self, index):
-        sample, target = self.normalizer.normalize(FeatureContainer().load(self.samples[index])), self.targets[index]
+        sample, target = self.processor_chain.process(FeatureContainer().load(self.samples[index])), self.targets[index]
         return torch.from_numpy(sample.astype(np.float32)).unsqueeze(dim=0), torch.from_numpy(np.array(target))
 
     def __len__(self):
@@ -81,22 +86,27 @@ def load_data(data_type, batch_size=32):
 
     train_files, val_files = data_set.validation_split(fold=1, split_type='balanced', validation_amount=0.3)
     test_files = data_set.eval(fold=1).unique_files
+
     filtered_train, filtered_val, filtered_test = [], [], []
+    print('loading data, it will take a while')
     for audio_filename in train_files:
         file_name = os.path.join('data/{}/{}'.format(data_type, 'features'),
                                  os.path.split(audio_filename)[1].replace('.wav', '.cpickle'))
-        file_label = data_set.meta.filter(filename=audio_filename).unique_scene_labels[0]
+        file_label = data_set.file_meta(filename=audio_filename).unique_scene_labels[0]
         filtered_train.append({'file_name': file_name, 'file_label': file_label})
     for audio_filename in val_files:
         file_name = os.path.join('data/{}/{}'.format(data_type, 'features'),
                                  os.path.split(audio_filename)[1].replace('.wav', '.cpickle'))
-        file_label = data_set.meta.filter(filename=audio_filename).unique_scene_labels[0]
+        file_label = data_set.file_meta(filename=audio_filename).unique_scene_labels[0]
         filtered_val.append({'file_name': file_name, 'file_label': file_label})
     for audio_filename in test_files:
         file_name = os.path.join('data/{}/{}'.format(data_type, 'features'),
                                  os.path.split(audio_filename)[1].replace('.wav', '.cpickle'))
-        file_label = data_set.meta.filter(filename=audio_filename).unique_scene_labels[0]
+        file_label = data_set.file_meta(filename=audio_filename).unique_scene_labels[0]
         filtered_test.append({'file_name': file_name, 'file_label': file_label})
+    filtered_train = DataFrame.from_records(filtered_train)
+    filtered_val = DataFrame.from_records(filtered_train)
+    filtered_test = DataFrame.from_records(filtered_train)
 
     train_set, val_set, test_set = MusicData(filtered_train), MusicData(filtered_val), MusicData(filtered_test)
     print('# {} dataset --- train: {:d} val: {:d} test: {:d}'.format(data_type, len(train_files), len(val_files),
