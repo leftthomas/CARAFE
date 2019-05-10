@@ -107,8 +107,8 @@ def load_data(data_type, batch_size=32):
         file_label = data_set.file_meta(filename=audio_filename).unique_scene_labels[0]
         filtered_test.append({'file_name': file_name, 'file_label': file_label})
     filtered_train = DataFrame.from_records(filtered_train)
-    filtered_val = DataFrame.from_records(filtered_train)
-    filtered_test = DataFrame.from_records(filtered_train)
+    filtered_val = DataFrame.from_records(filtered_val)
+    filtered_test = DataFrame.from_records(filtered_test)
 
     train_set, val_set, test_set = MusicData(filtered_train, data_type), MusicData(filtered_val, data_type), MusicData(
         filtered_test, data_type)
