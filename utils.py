@@ -29,7 +29,7 @@ class MusicData(Dataset):
     def __getitem__(self, index):
         sample = self.dsp.process(self.sp.process(self.np.process(self.frp.process(filename=self.samples[index]))))
         target = self.targets[index]
-        return torch.from_numpy(sample.data.astype(np.float32)).unsqueeze(dim=0), torch.from_numpy(np.array(target))
+        return torch.from_numpy(sample.data.astype(np.float32)), torch.from_numpy(np.array(target))
 
     def __len__(self):
         return len(self.samples)
