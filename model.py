@@ -191,7 +191,7 @@ class FeatureLayer(nn.Module):
         self.conv3 = ResLayer(64, 128, (3, 7), layer_sizes[1], block_type=block_type, downsample=True)
         self.conv4 = ResLayer(128, 256, (3, 7), layer_sizes[2], block_type=block_type, downsample=True)
         self.conv5 = ResLayer(256, 512, (3, 7), layer_sizes[3], block_type=block_type, downsample=True)
-        self.pool = nn.AdaptiveAvgPool3d(1)
+        self.pool = nn.AdaptiveAvgPool2d(1)
 
     def forward(self, x):
         x = self.conv1(x)
