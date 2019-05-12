@@ -34,7 +34,7 @@ def train(epoch, dataloader, net, optimizer, m, alpha):
 
         loss.backward()
         optimizer.step()
-        accum_loss += loss.data[0]
+        accum_loss += loss.item()
 
         print(f'[{epoch}][{i}/{len(dataloader)}] loss: {loss.item():.4f}')
     return accum_loss / len(dataloader)

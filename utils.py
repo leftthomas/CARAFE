@@ -49,7 +49,7 @@ def compute_result(dataloader, net):
     net.eval()
     for img, cls in dataloader:
         clses.append(cls)
-        bs.append(net(img.cuda()).data.cpu())
+        bs.append(net(img.cuda()).detach().cpu())
     return torch.sign(torch.cat(bs)), torch.cat(clses)
 
 

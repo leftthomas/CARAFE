@@ -27,7 +27,7 @@ class DSH(nn.Module):
 
         for m in self.modules():
             if m.__class__ == nn.Conv2d or m.__class__ == nn.Linear:
-                init.xavier_normal(m.weight.data)
+                init.xavier_normal_(m.weight.data)
                 m.bias.data.fill_(0)
 
     def forward(self, x):
