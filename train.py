@@ -1,140 +1,108 @@
 import argparse
+import os
 
-import pandas as pd
-import torch
-import torch.nn as nn
 import torch.optim as optim
-import torchnet as tnt
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torchnet.engine import Engine
-from torchnet.logger import VisdomPlotLogger, VisdomLogger
-from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
 
-import utils
-from model import Model
+from model import *
+from utils import *
 
 
-def processor(sample):
-    data, labels, training = sample
+def hashing_loss(b, cls, m, alpha):
+    """
+    compute hashing loss
+    automatically consider all n^2 pairs
+    """
+    y = (cls.unsqueeze(0) != cls.unsqueeze(1)).float().view(-1)
+    dist = ((b.unsqueeze(0) - b.unsqueeze(1)) ** 2).sum(dim=2).view(-1)
+    loss = (1 - y) / 2 * dist + y / 2 * (m - dist).clamp(min=0)
 
-    data, labels = data.to(DEVICE), labels.to(DEVICE)
+    loss = loss.mean() + alpha * (b.abs() - 1).abs().sum(dim=1).mean() * 2
 
-    model.train(training)
-
-    classes = model(data)
-    loss = loss_criterion(classes, labels)
-    return loss, classes
-
-
-def on_sample(state):
-    state['sample'].append(state['train'])
+    return loss
 
 
-def reset_meters():
-    meter_accuracy.reset()
-    meter_loss.reset()
-    meter_confusion.reset()
+def train(epoch, dataloader, net, optimizer, m, alpha):
+    accum_loss = 0
+    net.train()
+    for i, (img, cls) in enumerate(dataloader):
+        img, cls = [x.cuda() for x in (img, cls)]
+
+        net.zero_grad()
+        b = net(img)
+        loss = hashing_loss(b, cls, m, alpha)
+
+        loss.backward()
+        optimizer.step()
+        accum_loss += loss.data[0]
+
+        print(f'[{epoch}][{i}/{len(dataloader)}] loss: {loss.item():.4f}')
+    return accum_loss / len(dataloader)
 
 
-def on_forward(state):
-    meter_accuracy.add(state['output'].detach().cpu(), state['sample'][1])
-    meter_confusion.add(state['output'].detach().cpu(), state['sample'][1])
-    meter_loss.add(state['loss'].item())
+def test(epoch, dataloader, net, m, alpha):
+    accum_loss = 0
+    net.eval()
+    for img, cls in dataloader:
+        img, cls = [x.cuda() for x in (img, cls)]
 
+        b = net(img)
+        loss = hashing_loss(b, cls, m, alpha)
+        accum_loss += loss.item()
 
-def on_start_epoch(state):
-    reset_meters()
-    state['iterator'] = tqdm(state['iterator'])
-
-
-def on_end_epoch(state):
-    loss_logger.log(state['epoch'], meter_loss.value()[0], name='train')
-    accuracy_logger.log(state['epoch'], meter_accuracy.value()[0], name='train')
-    train_confusion_logger.log(meter_confusion.value())
-    results['train_loss'].append(meter_loss.value()[0])
-    results['train_accuracy'].append(meter_accuracy.value()[0])
-    print('[Epoch %d] Training Loss: %.4f Accuracy: %.2f%%' % (
-        state['epoch'], meter_loss.value()[0], meter_accuracy.value()[0]))
-
-    reset_meters()
-    # val
-    with torch.no_grad():
-        engine.test(processor, val_loader)
-
-    loss_logger.log(state['epoch'], meter_loss.value()[0], name='val')
-    accuracy_logger.log(state['epoch'], meter_accuracy.value()[0], name='val')
-    val_confusion_logger.log(meter_confusion.value())
-    results['val_loss'].append(meter_loss.value()[0])
-    results['val_accuracy'].append(meter_accuracy.value()[0])
-    print('[Epoch %d] Valing Loss: %.4f Accuracy: %.2f%%' % (
-        state['epoch'], meter_loss.value()[0], meter_accuracy.value()[0]))
-
-    # scheduler update
-    scheduler.step(meter_loss.value()[0])
-    # save best model
-    global best_accuracy
-    if meter_accuracy.value()[0] > best_accuracy:
-        torch.save(model.state_dict(), 'epochs/{}.pth'.format(DATA_TYPE))
-        best_accuracy = meter_accuracy.value()[0]
-
-    reset_meters()
-    # test
-    with torch.no_grad():
-        engine.test(processor, test_loader)
-
-    loss_logger.log(state['epoch'], meter_loss.value()[0], name='test')
-    accuracy_logger.log(state['epoch'], meter_accuracy.value()[0], name='test')
-    test_confusion_logger.log(meter_confusion.value())
-    results['test_loss'].append(meter_loss.value()[0])
-    results['test_accuracy'].append(meter_accuracy.value()[0])
-    print('[Epoch %d] Testing Loss: %.4f Accuracy: %.2f%%' % (
-        state['epoch'], meter_loss.value()[0], meter_accuracy.value()[0]))
-
-    # save statistics
-    data_frame = pd.DataFrame(
-        data={'train_loss': results['train_loss'], 'train_accuracy': results['train_accuracy'],
-              'val_loss': results['val_loss'], 'val_accuracy': results['val_accuracy'],
-              'test_loss': results['test_loss'], 'test_accuracy': results['test_accuracy']},
-        index=range(1, state['epoch'] + 1))
-    data_frame.to_csv('statistics/{}_results.csv'.format(DATA_TYPE), index_label='epoch')
+    accum_loss /= len(dataloader)
+    print(f'[{epoch}] val loss: {accum_loss:.4f}')
+    return accum_loss
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Train Acoustic Scene Classification Model')
-    parser.add_argument('--data_type', default='DCASE2018A', type=str,
-                        choices=['DCASE2018A', 'DCASE2018B', 'DCASE2019A', 'DCASE2019B'], help='dataset type')
-    parser.add_argument('--batch_size', default=32, type=int, help='training batch size')
-    parser.add_argument('--num_epochs', default=100, type=int, help='train epoch number')
+    parser = argparse.ArgumentParser(description='train DSH')
+    parser.add_argument('--cifar', default='data/cifar', help='path to cifar')
+    parser.add_argument('--weights', default='', help="path to weight (to continue training)")
+    parser.add_argument('--outf', default='epochs', help='folder to output model checkpoints')
+    parser.add_argument('--checkpoint', type=int, default=50, help='checkpointing after batches')
+    parser.add_argument('--batchSize', type=int, default=256, help='input batch size')
+    parser.add_argument('--ngpu', type=int, default=0, help='which GPU to use')
+    parser.add_argument('--binary_bits', type=int, default=12, help='length of hashing binary')
+    parser.add_argument('--alpha', type=float, default=0.01, help='weighting of regularizer')
+    parser.add_argument('--niter', type=int, default=500, help='number of epochs to train for')
+    parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
 
     opt = parser.parse_args()
-    DATA_TYPE, BATCH_SIZE, NUM_EPOCH = opt.data_type, opt.batch_size, opt.num_epochs
-    best_accuracy = 0
-    DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    results = {'train_loss': [], 'train_accuracy': [], 'val_loss': [], 'val_accuracy': [], 'test_loss': [],
-               'test_accuracy': []}
 
-    train_loader, val_loader, test_loader = utils.load_data(data_type=DATA_TYPE, batch_size=BATCH_SIZE)
-    NUM_CLASS = len(train_loader.dataset.label2index)
-    model = Model(NUM_CLASS, (2, 2, 2, 2)).to(DEVICE)
-    loss_criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(params=model.parameters())
-    scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=10, verbose=True)
-    print("# parameters:", sum(param.numel() for param in model.parameters()))
+    os.makedirs(opt.outf, exist_ok=True)
+    choose_gpu(opt.ngpu)
+    train_loader, test_loader = init_cifar_dataloader(opt.cifar, opt.batchSize)
+    logger = SummaryWriter()
 
-    engine = Engine()
-    meter_loss = tnt.meter.AverageValueMeter()
-    meter_accuracy = tnt.meter.ClassErrorMeter(accuracy=True)
-    meter_confusion = tnt.meter.ConfusionMeter(NUM_CLASS, normalized=True)
+    # setup net
+    net = DSH(opt.binary_bits)
+    resume_epoch = 0
+    print(net)
+    if opt.weights:
+        print(f'loading weight form {opt.weights}')
+        resume_epoch = int(os.path.basename(opt.weights)[:-4])
+        net.load_state_dict(torch.load(opt.weights, map_location=lambda storage, location: storage))
 
-    loss_logger = VisdomPlotLogger('line', env=DATA_TYPE, opts={'title': 'Loss'})
-    accuracy_logger = VisdomPlotLogger('line', env=DATA_TYPE, opts={'title': 'Accuracy'})
-    train_confusion_logger = VisdomLogger('heatmap', env=DATA_TYPE, opts={'title': 'Train Confusion Matrix'})
-    val_confusion_logger = VisdomLogger('heatmap', env=DATA_TYPE, opts={'title': 'Val Confusion Matrix'})
-    test_confusion_logger = VisdomLogger('heatmap', env=DATA_TYPE, opts={'title': 'Test Confusion Matrix'})
+    net.cuda()
 
-    engine.hooks['on_sample'] = on_sample
-    engine.hooks['on_forward'] = on_forward
-    engine.hooks['on_start_epoch'] = on_start_epoch
-    engine.hooks['on_end_epoch'] = on_end_epoch
+    # setup optimizer
+    optimizer = optim.Adam(net.parameters(), lr=opt.lr, weight_decay=0.004)
 
-    engine.train(processor, train_loader, maxepoch=NUM_EPOCH, optimizer=optimizer)
+    for epoch in range(resume_epoch, opt.niter):
+        train_loss = train(epoch, train_loader, net, optimizer, 2 * opt.binary_bits, opt.alpha)
+        logger.add_scalar('train_loss', train_loss, epoch)
+
+        test_loss = test(epoch, test_loader, net, 2 * opt.binary_bits, opt.alpha)
+        logger.add_scalar('test_loss', test_loss, epoch)
+
+        if epoch % opt.checkpoint == 0:
+            # compute mAP by searching testset images from trainset
+            trn_binary, trn_label = compute_result(train_loader, net)
+            tst_binary, tst_label = compute_result(test_loader, net)
+            mAP = compute_mAP(trn_binary, tst_binary, trn_label, tst_label)
+            print(f'[{epoch}] retrieval mAP: {mAP:.4f}')
+            logger.add_scalar('retrieval_mAP', mAP, epoch)
+
+            # save checkpoints
+            torch.save(net.state_dict(), os.path.join(opt.outf, f'{epoch:03d}.pth'))
