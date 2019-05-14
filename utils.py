@@ -1,79 +1,87 @@
+import os
+import sys
 import time
-from functools import wraps
 
-import torch
-import torch.backends.cudnn as cudnn
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
-from torchvision.datasets.cifar import CIFAR10
+_, term_width = os.popen('stty size', 'r').read().split()
+term_width = int(term_width)
 
-
-def init_cifar_dataloader(root, batchSize):
-    """load dataset"""
-    normalize = transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-    transform_train = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        normalize
-    ])
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        normalize
-    ])
-
-    train_loader = DataLoader(CIFAR10(root, train=True, download=True, transform=transform_train),
-                              batch_size=batchSize, shuffle=True, num_workers=4, pin_memory=True)
-    print(f'train set: {len(train_loader.dataset)}')
-    test_loader = DataLoader(CIFAR10(root, train=False, download=True, transform=transform_test),
-                             batch_size=batchSize * 8, shuffle=False, num_workers=4, pin_memory=True)
-    print(f'val set: {len(test_loader.dataset)}')
-
-    return train_loader, test_loader
+TOTAL_BAR_LENGTH = 65.
+last_time = time.time()
+begin_time = last_time
 
 
-def timing(f):
-    """print time used for function f"""
+def progress_bar(current, total, msg=None):
+    global last_time, begin_time
+    if current == 0:
+        begin_time = time.time()  # Reset for new bar.
 
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        time_start = time.time()
-        ret = f(*args, **kwargs)
-        print(f'total time = {time.time() - time_start:.4f}')
-        return ret
+    cur_len = int(TOTAL_BAR_LENGTH * current / total)
+    rest_len = int(TOTAL_BAR_LENGTH - cur_len) - 1
 
-    return wrapper
+    sys.stdout.write(' [')
+    for i in range(cur_len):
+        sys.stdout.write('=')
+    sys.stdout.write('>')
+    for i in range(rest_len):
+        sys.stdout.write('.')
+    sys.stdout.write(']')
+
+    cur_time = time.time()
+    step_time = cur_time - last_time
+    last_time = cur_time
+    tot_time = cur_time - begin_time
+
+    L = []
+    L.append('  Step: %s' % format_time(step_time))
+    L.append(' | Tot: %s' % format_time(tot_time))
+    if msg:
+        L.append(' | ' + msg)
+
+    msg = ''.join(L)
+    sys.stdout.write(msg)
+    for i in range(term_width - int(TOTAL_BAR_LENGTH) - len(msg) - 3):
+        sys.stdout.write(' ')
+
+    # Go back to the center of the bar.
+    for i in range(term_width - int(TOTAL_BAR_LENGTH / 2) + 2):
+        sys.stdout.write('\b')
+    sys.stdout.write(' %d/%d ' % (current + 1, total))
+
+    if current < total - 1:
+        sys.stdout.write('\r')
+    else:
+        sys.stdout.write('\n')
+    sys.stdout.flush()
 
 
-def compute_result(dataloader, net):
-    bs, clses = [], []
-    net.eval()
-    for img, cls in dataloader:
-        clses.append(cls)
-        bs.append(net(img.cuda()).detach().cpu())
-    return torch.sign(torch.cat(bs)), torch.cat(clses)
+def format_time(seconds):
+    days = int(seconds / 3600 / 24)
+    seconds = seconds - days * 3600 * 24
+    hours = int(seconds / 3600)
+    seconds = seconds - hours * 3600
+    minutes = int(seconds / 60)
+    seconds = seconds - minutes * 60
+    secondsf = int(seconds)
+    seconds = seconds - secondsf
+    millis = int(seconds * 1000)
 
-
-@timing
-def compute_mAP(trn_binary, tst_binary, trn_label, tst_label):
-    """
-    compute mAP by searching testset from trainset
-    https://github.com/flyingpot/pytorch_deephash
-    """
-    for x in trn_binary, tst_binary, trn_label, tst_label: x.long()
-
-    AP = []
-    Ns = torch.arange(1, trn_binary.size(0) + 1)
-    for i in range(tst_binary.size(0)):
-        query_label, query_binary = tst_label[i], tst_binary[i]
-        _, query_result = torch.sum((query_binary != trn_binary).long(), dim=1).sort()
-        correct = (query_label == trn_label[query_result]).float()
-        P = torch.cumsum(correct, dim=0) / Ns
-        AP.append(torch.sum(P * correct) / torch.sum(correct))
-    mAP = torch.mean(torch.Tensor(AP))
-    return mAP
-
-
-def choose_gpu(i_gpu):
-    """choose current CUDA device"""
-    torch.cuda.device(i_gpu).__enter__()
-    cudnn.benchmark = True
+    f = ''
+    i = 1
+    if days > 0:
+        f += str(days) + 'D'
+        i += 1
+    if hours > 0 and i <= 2:
+        f += str(hours) + 'h'
+        i += 1
+    if minutes > 0 and i <= 2:
+        f += str(minutes) + 'm'
+        i += 1
+    if secondsf > 0 and i <= 2:
+        f += str(secondsf) + 's'
+        i += 1
+    if millis > 0 and i <= 2:
+        f += str(millis) + 'ms'
+        i += 1
+    if f == '':
+        f = '0ms'
+    return f
