@@ -13,7 +13,6 @@ from model import VGG
 from utils import progress_bar
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
-parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
 args = parser.parse_args()
 
@@ -36,12 +35,10 @@ transform_test = transforms.Compose([
 ])
 
 train_set = CIFAR10(root='data', train=True, download=True, transform=transform_train)
-train_loader = DataLoader(train_set, batch_size=128, shuffle=True, num_workers=2)
+train_loader = DataLoader(train_set, batch_size=32, shuffle=True, num_workers=4)
 
 test_set = CIFAR10(root='data', train=False, download=True, transform=transform_test)
-test_loader = DataLoader(test_set, batch_size=100, shuffle=False, num_workers=2)
-
-classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+test_loader = DataLoader(test_set, batch_size=30, shuffle=False, num_workers=4)
 
 # Model
 print('==> Building model..')
@@ -60,7 +57,7 @@ if args.resume:
     start_epoch = checkpoint['epoch']
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+optimizer = optim.Adam(net.parameters(), lr=1e-3, weight_decay=5e-4)
 
 
 # Training
