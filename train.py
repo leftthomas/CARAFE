@@ -42,7 +42,7 @@ test_loader = DataLoader(test_set, batch_size=5, shuffle=False, num_workers=4)
 
 # Model
 print('==> Building model..')
-net = VGG('VGG16')
+net = VGG()
 net = net.to(device)
 if device == 'cuda':
     cudnn.benchmark = True
