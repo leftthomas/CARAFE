@@ -5,17 +5,17 @@ from capsule_layer import CapsuleConv2d, CapsuleLinear
 class VGG(nn.Module):
     def __init__(self):
         super(VGG, self).__init__()
-        self.conv1 = CapsuleConv2d(3, 64, 3, 1, 8, 1, 1, share_weight=False, bias=False, squash=False)
-        self.conv2 = CapsuleConv2d(64, 64, 3, 8, 8, 1, 1, share_weight=False, bias=False, squash=False)
-        self.conv3 = CapsuleConv2d(64, 128, 3, 8, 16, 2, 1, share_weight=False, bias=False, squash=False)
-        self.conv4 = CapsuleConv2d(128, 128, 3, 16, 16, 1, 1, share_weight=False, bias=False, squash=False)
-        self.conv5 = CapsuleConv2d(128, 256, 3, 16, 32, 2, 1, share_weight=False, bias=False, squash=False)
-        self.conv6 = CapsuleConv2d(256, 256, 3, 32, 32, 1, 1, share_weight=False, bias=False, squash=False)
-        self.conv7 = CapsuleConv2d(256, 256, 3, 32, 32, 1, 1, share_weight=False, bias=False, squash=False)
-        self.conv8 = CapsuleConv2d(256, 512, 3, 32, 64, 2, 1, share_weight=False, bias=False, squash=False)
-        self.conv9 = CapsuleConv2d(512, 512, 3, 64, 64, 1, 1, share_weight=False, bias=False, squash=False)
-        self.conv10 = CapsuleConv2d(512, 512, 3, 64, 64, 1, 1, share_weight=False, bias=False, squash=False)
-        self.classifier = CapsuleLinear(10, 64, 64, in_capsules=128, share_weight=False, bias=False)
+        self.conv1 = CapsuleConv2d(3, 64, 5, 1, 8, 1, 0, share_weight=False, bias=False, squash=False)
+        self.conv2 = CapsuleConv2d(64, 64, 5, 8, 8, 1, 0, share_weight=False, bias=False, squash=False)
+        self.conv3 = CapsuleConv2d(64, 128, 5, 8, 16, 1, 0, share_weight=False, bias=False, squash=False)
+        self.conv4 = CapsuleConv2d(128, 128, 3, 16, 16, 1, 0, share_weight=False, bias=False, squash=False)
+        self.conv5 = CapsuleConv2d(128, 256, 3, 16, 32, 1, 0, share_weight=False, bias=False, squash=False)
+        self.conv6 = CapsuleConv2d(256, 256, 3, 32, 32, 1, 0, share_weight=False, bias=False, squash=False)
+        self.conv7 = CapsuleConv2d(256, 256, 3, 32, 32, 1, 0, share_weight=False, bias=False, squash=False)
+        self.conv8 = CapsuleConv2d(256, 512, 3, 32, 64, 1, 0, share_weight=False, bias=False, squash=False)
+        self.conv9 = CapsuleConv2d(512, 512, 3, 64, 64, 1, 0, share_weight=False, bias=False, squash=False)
+        self.conv10 = CapsuleConv2d(512, 512, 3, 64, 64, 1, 0, share_weight=False, bias=False, squash=False)
+        self.classifier = CapsuleLinear(10, 64, 64, in_capsules=288, share_weight=False, bias=False)
 
     def forward(self, x):
         out = self.conv1(x)

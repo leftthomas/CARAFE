@@ -35,10 +35,10 @@ transform_test = transforms.Compose([
 ])
 
 train_set = CIFAR10(root='data', train=True, download=True, transform=transform_train)
-train_loader = DataLoader(train_set, batch_size=4, shuffle=True, num_workers=4)
+train_loader = DataLoader(train_set, batch_size=1, shuffle=True, num_workers=4)
 
 test_set = CIFAR10(root='data', train=False, download=True, transform=transform_test)
-test_loader = DataLoader(test_set, batch_size=5, shuffle=False, num_workers=4)
+test_loader = DataLoader(test_set, batch_size=1, shuffle=False, num_workers=4)
 
 # Model
 print('==> Building model..')
