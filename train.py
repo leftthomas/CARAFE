@@ -38,7 +38,7 @@ train_set = CIFAR10(root='data', train=True, download=True, transform=transform_
 train_loader = DataLoader(train_set, batch_size=32, shuffle=True, num_workers=4)
 
 test_set = CIFAR10(root='data', train=False, download=True, transform=transform_test)
-test_loader = DataLoader(test_set, batch_size=30, shuffle=False, num_workers=4)
+test_loader = DataLoader(test_set, batch_size=60, shuffle=False, num_workers=4)
 
 # Model
 print('==> Building model..')
