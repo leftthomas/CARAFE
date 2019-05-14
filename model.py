@@ -17,7 +17,8 @@ class VGG(nn.Module):
 
     def forward(self, x):
         out = self.features(x)
-        out = out.view(out.size(0), -1)
+        out = out.permute(0, 2, 3, 1).contiguous()
+        out = out.view(out.size(0), -1, 128)
         out = self.classifier(out)
         return out.norm(dim=-1)
 
