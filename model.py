@@ -6,6 +6,7 @@ class VGG(nn.Module):
     def __init__(self):
         super(VGG, self).__init__()
         self.conv1 = CapsuleConv2d(3, 64, 5, 1, 8, 1, 0, share_weight=False, squash=False, bias=False)
+        # self.conv1 = nn.Conv2d(3, 64, 5, 1, 0, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.conv2 = nn.Conv2d(64, 64, 5, 1, 0, bias=False)
         self.bn2 = nn.BatchNorm2d(64)
