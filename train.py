@@ -80,8 +80,6 @@ if __name__ == '__main__':
         results['train_loss'].append(meter_loss.value()[0])
         results['train_accuracy_1'].append(meter_accuracy.value()[0])
         results['train_accuracy_5'].append(meter_accuracy.value()[1])
-        print('Train Epoch: {} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 Accuracy: {:.2f}%'
-              .format(epoch, meter_loss.value()[0], meter_accuracy.value()[0], meter_accuracy.value()[1]))
         meter_loss.reset()
         meter_accuracy.reset()
         meter_confuse.reset()
@@ -109,8 +107,6 @@ if __name__ == '__main__':
             results['test_loss'].append(meter_loss.value()[0])
             results['test_accuracy_1'].append(meter_accuracy.value()[0])
             results['test_accuracy_5'].append(meter_accuracy.value()[1])
-            print('Test Epoch: {} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 Accuracy: {:.2f}%'
-                  .format(epoch, meter_loss.value()[0], meter_accuracy.value()[0], meter_accuracy.value()[1]))
             meter_loss.reset()
             meter_accuracy.reset()
             meter_confuse.reset()
