@@ -1,5 +1,5 @@
 # CCN
-A PyTorch implementation of Convolutional Capsule Network based on the paper [Convolutional Capsule Network for Object Detection]().
+A PyTorch implementation of ProbAM-guided Capsule Network based on the paper [ProbAM-guided Capsule Network for Object Detection]().
 
 ## Requirements
 - [Anaconda](https://www.anaconda.com/download/)
