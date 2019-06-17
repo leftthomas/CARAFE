@@ -25,4 +25,5 @@ class Model(nn.Module):
         x = self.features(x)
         x = x.view(x.size(0), -1, 512)
         out, prob = self.fc(x)
+        out = out.norm(dim=-1)
         return out
