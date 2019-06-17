@@ -20,9 +20,6 @@ class Model(nn.Module):
         self.fc = nn.Linear(7 * 7 * 512, num_classes)
         # self.fc = CapsuleLinear(out_capsules=16, in_length=64, out_length=32)
 
-        # embedding
-        # self.embedding = CompositionalEmbedding(60000, 64, 8, weighted=False, return_code=True)
-
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)

@@ -66,8 +66,8 @@ if __name__ == '__main__':
             meter_loss.add(loss.item())
             meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
             meter_confuse.add(out.detach().cpu(), label.detach().cpu())
-            train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f%%}'
-                                           ' Top5 Accuracy: {:.2f%%}'.format(epoch, num_data, len(train_set),
+            train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}%'
+                                           ' Top5 Accuracy: {:.2f}%'.format(epoch, num_data, len(train_set),
                                                                              meter_loss.value()[0],
                                                                              meter_accuracy.value()[0],
                                                                              meter_accuracy.value()[1]))
@@ -78,8 +78,8 @@ if __name__ == '__main__':
         results['train_loss'].append(meter_loss.value()[0])
         results['train_accuracy_1'].append(meter_accuracy.value()[0])
         results['train_accuracy_5'].append(meter_accuracy.value()[1])
-        train_progress.set_description('Train Epoch: {} Loss: {:.2f} Top1 Accuracy: {:.2f%%}'
-                                       ' Top5 Accuracy: {:.2f%%}'.format(epoch, meter_loss.value()[0],
+        train_progress.set_description('Train Epoch: {} Loss: {:.2f} Top1 Accuracy: {:.2f}%'
+                                       ' Top5 Accuracy: {:.2f}%'.format(epoch, meter_loss.value()[0],
                                                                          meter_accuracy.value()[0],
                                                                          meter_accuracy.value()[1]))
         meter_loss.reset()
@@ -98,8 +98,8 @@ if __name__ == '__main__':
                 meter_loss.add(loss.item())
                 meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
                 meter_confuse.add(out.detach().cpu(), label.detach().cpu())
-                test_progress.set_description('Test Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f%%}'
-                                              ' Top5 Accuracy: {:.2f%%}'.format(epoch, num_data, len(test_set),
+                test_progress.set_description('Test Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}%'
+                                              ' Top5 Accuracy: {:.2f}%'.format(epoch, num_data, len(test_set),
                                                                                 meter_loss.value()[0],
                                                                                 meter_accuracy.value()[0],
                                                                                 meter_accuracy.value()[1]))
@@ -110,8 +110,8 @@ if __name__ == '__main__':
             results['test_loss'].append(meter_loss.value()[0])
             results['test_accuracy_1'].append(meter_accuracy.value()[0])
             results['test_accuracy_5'].append(meter_accuracy.value()[1])
-            test_progress.set_description('Test Epoch: {} Loss: {:.2f} Top1 Accuracy: {:.2f%%}'
-                                          ' Top5 Accuracy: {:.2f%%}'.format(epoch, meter_loss.value()[0],
+            test_progress.set_description('Test Epoch: {} Loss: {:.2f} Top1 Accuracy: {:.2f}%'
+                                          ' Top5 Accuracy: {:.2f}%'.format(epoch, meter_loss.value()[0],
                                                                             meter_accuracy.value()[0],
                                                                             meter_accuracy.value()[1]))
             meter_loss.reset()
@@ -119,7 +119,7 @@ if __name__ == '__main__':
             meter_confuse.reset()
 
         # save model
-        torch.save(model.state_dict(), 'epochs/%s_%d.pth' % (DATA_NAME, epoch))
+        torch.save(model.state_dict(), 'epochs/{}_{}.pth'.format(DATA_NAME, epoch))
         # save statistics
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
         data_frame.to_csv('statistics/{}_results.csv'.format(DATA_NAME), index_label='epoch')
