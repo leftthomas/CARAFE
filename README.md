@@ -11,6 +11,10 @@ conda install pytorch torchvision -c pytorch
 ```
 pip install git+https://github.com/pytorch/tnt.git@master
 ```
+- capsule-layer
+```
+pip install git+https://github.com/leftthomas/CapsuleLayer.git@master
+```
 
 ## Datasets
 TODO
@@ -20,15 +24,20 @@ TODO
 ```
 visdom -logging_level WARNING & python train.py --num_epochs 200
 optional arguments:
---data_type                   dataset type [default value is 'CIFAR10'](choices=['CIFAR10'])
+--data_name                   dataset name [default value is 'voc'](choices=['voc', 'coco', 'cityscapes'])
 --batch_size                  train batch size [default value is 32]
 --num_epochs                  train epochs number [default value is 100]
 ```
-Visdom now can be accessed by going to `127.0.0.1:8097` in your browser.
+Visdom now can be accessed by going to `127.0.0.1:8097/$data_type` in your browser.
 
 ## Results
-The train/val/test loss、accuracy and confusion matrix are showed on visdom.
+The train/test loss, accuracy and confusion matrix are showed on visdom.
 
-- CIFAR10
+- VOC
+![result](results/voc.png)
 
-![result](results/cifar10.png)
+- COCO
+![result](results/coco.png)
+
+- CityScapes
+![result](results/scityscapses.png)

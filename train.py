@@ -1,123 +1,125 @@
 import argparse
-import os
 
+import pandas as pd
 import torch
-import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
+import torchnet as tnt
 import torchvision.transforms as transforms
 from torch.utils.data.dataloader import DataLoader
-from torchvision.datasets.cifar import CIFAR10
+from torchnet.logger import VisdomPlotLogger, VisdomLogger
+from torchvision.datasets import ImageFolder
+from tqdm import tqdm
 
-from model import VGG
-from utils import progress_bar
+from model import Model
 
-parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
-parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
-args = parser.parse_args()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Train Image Detection Model')
+    parser.add_argument('--data_name', default='voc', type=str, choices=['voc', 'coco', 'cityscapes'],
+                        help='dataset name')
+    parser.add_argument('--batch_size', default=32, type=int, help='training batch size')
+    parser.add_argument('--num_epochs', default=100, type=int, help='train epoch number')
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-best_acc = 0  # best test accuracy
-start_epoch = 0  # start from epoch 0 or last checkpoint epoch
+    opt = parser.parse_args()
+    DATA_NAME, BATCH_SIZE, NUM_EPOCH = opt.data_name, opt.batch_size, opt.num_epochs
 
-# Data
-print('==> Preparing data..')
-transform_train = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    results = {'train_loss': [], 'test_loss': [], 'train_accuracy_1': [], 'test_accuracy_1': [], 'train_accuracy_5': [],
+               'test_accuracy_5': []}
 
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
+    # Data
+    print('==> Preparing data..')
+    transform_train = transforms.Compose([transforms.Resize(224), transforms.RandomCrop(224), transforms.ToTensor()])
+    transform_test = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
+    train_set = ImageFolder(root='data/{}/train'.format(DATA_NAME), transform=transform_train)
+    train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=16)
+    test_set = ImageFolder(root='data/{}/test'.format(DATA_NAME), transform=transform_test)
+    test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=16)
 
-train_set = CIFAR10(root='data', train=True, download=True, transform=transform_train)
-train_loader = DataLoader(train_set, batch_size=128, shuffle=True, num_workers=8)
+    # Model
+    print('==> Building model..')
+    model = Model(len(train_set.classes)).to(device)
+    print("# parameters:", sum(param.numel() for param in model.parameters()))
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters())
 
-test_set = CIFAR10(root='data', train=False, download=True, transform=transform_test)
-test_loader = DataLoader(test_set, batch_size=100, shuffle=False, num_workers=8)
+    meter_loss = tnt.meter.AverageValueMeter()
+    meter_accuracy = tnt.meter.ClassErrorMeter(topk=[1, 5], accuracy=True)
+    meter_confuse = tnt.meter.ConfusionMeter(len(train_set.classes), normalized=True)
+    loss_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Loss'})
+    accuracy_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Accuracy'})
+    confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Confusion Matrix', 'columnnames':
+        train_set.classes, 'rownames': len(train_set.classes)})
 
-# Model
-print('==> Building model..')
-net = VGG()
-net = net.to(device)
-if device == 'cuda':
-    net = nn.DataParallel(net)
-    cudnn.benchmark = True
+    for epoch in range(1, NUM_EPOCH + 1):
+        # train loop
+        model.train()
+        train_progress, num_data = tqdm(train_loader), 0
+        for img, label in train_progress:
+            num_data += img.size(0)
+            img, label = img.to(device), label.to(device)
+            optimizer.zero_grad()
+            out = model(img)
+            loss = criterion(out, label)
+            loss.backward()
+            optimizer.step()
+            meter_loss.add(loss.item())
+            meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
+            meter_confuse.add(out.detach().cpu(), label.detach().cpu())
+            train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f%%}'
+                                           ' Top5 Accuracy: {:.2f%%}'.format(epoch, num_data, len(train_set),
+                                                                             meter_loss.value()[0],
+                                                                             meter_accuracy.value()[0],
+                                                                             meter_accuracy.value()[1]))
+        loss_logger.log(epoch, meter_loss.value()[0], name='train')
+        accuracy_logger.log(epoch, meter_accuracy.value()[0], name='train_top1')
+        accuracy_logger.log(epoch, meter_accuracy.value()[1], name='train_top5')
+        confuse_logger.log(epoch, meter_confuse.value(), name='train')
+        results['train_loss'].append(meter_loss.value()[0])
+        results['train_accuracy_1'].append(meter_accuracy.value()[0])
+        results['train_accuracy_5'].append(meter_accuracy.value()[1])
+        train_progress.set_description('Train Epoch: {} Loss: {:.2f} Top1 Accuracy: {:.2f%%}'
+                                       ' Top5 Accuracy: {:.2f%%}'.format(epoch, meter_loss.value()[0],
+                                                                         meter_accuracy.value()[0],
+                                                                         meter_accuracy.value()[1]))
+        meter_loss.reset()
+        meter_accuracy.reset()
+        meter_confuse.reset()
 
-if args.resume:
-    # Load checkpoint.
-    print('==> Resuming from checkpoint..')
-    assert os.path.isdir('epochs'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load('epochs/ckpt.t7')
-    net.load_state_dict(checkpoint['net'])
-    best_acc = checkpoint['acc']
-    start_epoch = checkpoint['epoch']
+        # test loop
+        with torch.no_grad():
+            model.eval()
+            test_progress, num_data = tqdm(test_loader), 0
+            for img, label in test_progress:
+                num_data += img.size(0)
+                img, label = img.to(device), label.to(device)
+                out = model(img.to(device))
+                loss = criterion(out, label)
+                meter_loss.add(loss.item())
+                meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
+                meter_confuse.add(out.detach().cpu(), label.detach().cpu())
+                test_progress.set_description('Test Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f%%}'
+                                              ' Top5 Accuracy: {:.2f%%}'.format(epoch, num_data, len(test_set),
+                                                                                meter_loss.value()[0],
+                                                                                meter_accuracy.value()[0],
+                                                                                meter_accuracy.value()[1]))
+            loss_logger.log(epoch, meter_loss.value()[0], name='test')
+            accuracy_logger.log(epoch, meter_accuracy.value()[0], name='test_top1')
+            accuracy_logger.log(epoch, meter_accuracy.value()[1], name='test_top5')
+            confuse_logger.log(epoch, meter_confuse.value(), name='test')
+            results['test_loss'].append(meter_loss.value()[0])
+            results['test_accuracy_1'].append(meter_accuracy.value()[0])
+            results['test_accuracy_5'].append(meter_accuracy.value()[1])
+            test_progress.set_description('Test Epoch: {} Loss: {:.2f} Top1 Accuracy: {:.2f%%}'
+                                          ' Top5 Accuracy: {:.2f%%}'.format(epoch, meter_loss.value()[0],
+                                                                            meter_accuracy.value()[0],
+                                                                            meter_accuracy.value()[1]))
+            meter_loss.reset()
+            meter_accuracy.reset()
+            meter_confuse.reset()
 
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(net.parameters(), lr=1e-3, weight_decay=5e-4)
-
-
-# Training
-def train(epoch):
-    print('\nEpoch: %d' % epoch)
-    net.train()
-    train_loss = 0
-    correct = 0
-    total = 0
-    for batch_idx, (inputs, targets) in enumerate(train_loader):
-        inputs, targets = inputs.to(device), targets.to(device)
-        optimizer.zero_grad()
-        outputs = net(inputs)
-        loss = criterion(outputs, targets)
-        loss.backward()
-        optimizer.step()
-
-        train_loss += loss.item()
-        _, predicted = outputs.max(1)
-        total += targets.size(0)
-        correct += predicted.eq(targets).sum().item()
-
-        progress_bar(batch_idx, len(train_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                     % (train_loss / (batch_idx + 1), 100. * correct / total, correct, total))
-
-
-def test(epoch):
-    global best_acc
-    net.eval()
-    test_loss = 0
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for batch_idx, (inputs, targets) in enumerate(test_loader):
-            inputs, targets = inputs.to(device), targets.to(device)
-            outputs = net(inputs)
-            loss = criterion(outputs, targets)
-
-            test_loss += loss.item()
-            _, predicted = outputs.max(1)
-            total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
-
-            progress_bar(batch_idx, len(test_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                         % (test_loss / (batch_idx + 1), 100. * correct / total, correct, total))
-
-    # Save checkpoint.
-    acc = 100. * correct / total
-    if acc > best_acc:
-        print('Saving..')
-        state = {
-            'net': net.state_dict(),
-            'acc': acc,
-            'epoch': epoch,
-        }
-        torch.save(state, 'epochs/ckpt.t7')
-        best_acc = acc
-
-
-for epoch in range(start_epoch, start_epoch + 200):
-    train(epoch)
-    test(epoch)
+        # save model
+        torch.save(model.state_dict(), 'epochs/%s_%d.pth' % (DATA_NAME, epoch))
+        # save statistics
+        data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
+        data_frame.to_csv('statistics/{}_results.csv'.format(DATA_NAME), index_label='epoch')
