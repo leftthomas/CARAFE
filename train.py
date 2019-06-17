@@ -49,7 +49,7 @@ if __name__ == '__main__':
     loss_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Loss'})
     accuracy_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Accuracy'})
     confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Confusion Matrix', 'columnnames':
-        train_set.classes, 'rownames': len(train_set.classes)})
+        train_set.classes, 'rownames': train_set.classes})
 
     for epoch in range(1, NUM_EPOCH + 1):
         # train loop
