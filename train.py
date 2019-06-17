@@ -48,8 +48,12 @@ if __name__ == '__main__':
     meter_confuse = tnt.meter.ConfusionMeter(len(train_set.classes), normalized=True)
     loss_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Loss'})
     accuracy_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Accuracy'})
-    confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Confusion Matrix', 'columnnames':
-        train_set.classes, 'rownames': train_set.classes})
+    train_confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Train Confusion Matrix',
+                                                                        'columnnames': train_set.classes,
+                                                                        'rownames': train_set.classes})
+    test_confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Test Confusion Matrix',
+                                                                       'columnnames': test_set.classes,
+                                                                       'rownames': test_set.classes})
 
     for epoch in range(1, NUM_EPOCH + 1):
         # train loop
@@ -74,7 +78,7 @@ if __name__ == '__main__':
         loss_logger.log(epoch, meter_loss.value()[0], name='train')
         accuracy_logger.log(epoch, meter_accuracy.value()[0], name='train_top1')
         accuracy_logger.log(epoch, meter_accuracy.value()[1], name='train_top5')
-        confuse_logger.log(epoch, meter_confuse.value(), name='train')
+        train_confuse_logger.log(meter_confuse.value())
         results['train_loss'].append(meter_loss.value()[0])
         results['train_accuracy_1'].append(meter_accuracy.value()[0])
         results['train_accuracy_5'].append(meter_accuracy.value()[1])
@@ -106,7 +110,7 @@ if __name__ == '__main__':
             loss_logger.log(epoch, meter_loss.value()[0], name='test')
             accuracy_logger.log(epoch, meter_accuracy.value()[0], name='test_top1')
             accuracy_logger.log(epoch, meter_accuracy.value()[1], name='test_top5')
-            confuse_logger.log(epoch, meter_confuse.value(), name='test')
+            test_confuse_logger.log(meter_confuse.value())
             results['test_loss'].append(meter_loss.value()[0])
             results['test_accuracy_1'].append(meter_accuracy.value()[0])
             results['test_accuracy_5'].append(meter_accuracy.value()[1])
