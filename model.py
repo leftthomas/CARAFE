@@ -6,7 +6,7 @@ from torchvision.models.resnet import resnet18
 
 class Model(nn.Module):
 
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, num_iterations=3):
         super(Model, self).__init__()
 
         # backbone
@@ -19,7 +19,7 @@ class Model(nn.Module):
 
         # classifier
         self.classifier = CapsuleLinear(out_capsules=num_classes, in_length=64, out_length=32, in_capsules=None,
-                                        share_weight=True, num_iterations=3, bias=False, return_prob=True)
+                                        share_weight=True, num_iterations=num_iterations, bias=False, return_prob=True)
 
     def forward(self, x):
         x = self.features(x)
@@ -27,4 +27,4 @@ class Model(nn.Module):
         x = x.view(x.size(0), -1, 64)
         out, prob = self.classifier(x)
         out = out.norm(dim=-1)
-        return out
+        return out, prob

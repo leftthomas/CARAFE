@@ -16,10 +16,11 @@ if __name__ == '__main__':
     parser.add_argument('--data_name', default='voc', type=str, choices=['voc', 'coco', 'cityscapes'],
                         help='dataset name')
     parser.add_argument('--batch_size', default=32, type=int, help='training batch size')
+    parser.add_argument('--num_iterations', default=3, type=int, help='routing iterations number')
     parser.add_argument('--num_epochs', default=100, type=int, help='train epoch number')
 
     opt = parser.parse_args()
-    DATA_NAME, BATCH_SIZE, NUM_EPOCH = opt.data_name, opt.batch_size, opt.num_epochs
+    DATA_NAME, BATCH_SIZE, NUM_ITERATIONS, NUM_EPOCH = opt.data_name, opt.batch_size, opt.num_iterations, opt.num_epochs
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     results = {'train_loss': [], 'test_loss': [], 'train_accuracy_1': [], 'test_accuracy_1': [], 'train_accuracy_5': [],
@@ -27,12 +28,12 @@ if __name__ == '__main__':
 
     # Data
     print('==> Preparing data..')
-    train_loader = utils.load_data(DATA_NAME, 'train', BATCH_SIZE)
-    test_loader = utils.load_data(DATA_NAME, 'test', BATCH_SIZE)
+    train_loader = utils.load_data(DATA_NAME, 'train', BATCH_SIZE, shuffle=True)
+    test_loader = utils.load_data(DATA_NAME, 'test', BATCH_SIZE, shuffle=False)
 
     # Model
     print('==> Building model..')
-    model = Model(len(train_loader.dataset.classes)).to(device)
+    model = Model(len(train_loader.dataset.classes), NUM_EPOCH).to(device)
     print("# parameters:", sum(param.numel() for param in model.parameters()))
     criterion = nn.CrossEntropyLoss()
     optim_configs = [{'params': model.features.parameters(), 'lr': 1e-4 * 10},
@@ -59,7 +60,7 @@ if __name__ == '__main__':
             num_data += img.size(0)
             img, label = img.to(device), label.to(device)
             optimizer.zero_grad()
-            out = model(img)
+            out, prob = model(img)
             loss = criterion(out, label)
             loss.backward()
             optimizer.step()
@@ -88,7 +89,7 @@ if __name__ == '__main__':
             for img, label in test_progress:
                 num_data += img.size(0)
                 img, label = img.to(device), label.to(device)
-                out = model(img.to(device))
+                out, prob = model(img)
                 loss = criterion(out, label)
                 meter_loss.add(loss.item())
                 meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
