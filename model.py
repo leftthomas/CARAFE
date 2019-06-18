@@ -14,7 +14,7 @@ class Model(nn.Module):
             if isinstance(module, nn.Linear) or isinstance(module, nn.AdaptiveAvgPool2d):
                 continue
             layers.append(module)
-        self.in_length, self.out_length = 64, 32
+        self.in_length, self.out_length = 512, 32
         self.features = nn.Sequential(*layers)
 
         # classifier
