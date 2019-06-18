@@ -18,12 +18,13 @@ class Model(nn.Module):
         self.features = nn.Sequential(*layers)
 
         # classifier
-        self.fc = CapsuleLinear(out_capsules=num_classes, in_length=64, out_length=32, in_capsules=None,
-                                share_weight=True, num_iterations=3, bias=False, return_prob=True)
+        self.classifier = CapsuleLinear(out_capsules=num_classes, in_length=64, out_length=32, in_capsules=None,
+                                        share_weight=True, num_iterations=3, bias=False, return_prob=True)
 
     def forward(self, x):
         x = self.features(x)
+        x = x.permute(0, 2, 3, 1).contiguous()
         x = x.view(x.size(0), -1, 64)
-        out, prob = self.fc(x)
+        out, prob = self.classifier(x)
         out = out.norm(dim=-1)
         return out

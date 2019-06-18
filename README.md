@@ -15,6 +15,10 @@ pip install git+https://github.com/pytorch/tnt.git@master
 ```
 pip install git+https://github.com/leftthomas/CapsuleLayer.git@master
 ```
+- opencv
+```
+conda install opencv
+```
 
 ## Datasets
 TODO
@@ -29,6 +33,16 @@ optional arguments:
 --num_epochs                  train epochs number [default value is 100]
 ```
 Visdom now can be accessed by going to `127.0.0.1:8097/$data_type` in your browser.
+
+### Visualization
+```
+python vis.py --data_type CIFAR10
+optional arguments:
+--data_type                dataset type [default value is 'STL10'](choices:['MNIST', 'FashionMNIST', 'SVHN', 'CIFAR10', 'STL10'])
+--data_mode                visualized data mode [default value is 'test_single'](choices:['test_single', 'test_multi'])
+--num_iterations           routing iterations number [default value is 3]
+```
+Generated results are on the same directory with `README.md`.
 
 ## Results
 The train/test loss, accuracy and confusion matrix are showed on visdom.

@@ -42,7 +42,7 @@ if __name__ == '__main__':
     print("# parameters:", sum(param.numel() for param in model.parameters()))
     criterion = nn.CrossEntropyLoss()
     optim_configs = [{'params': model.features.parameters(), 'lr': 1e-4 * 10},
-                     {'params': model.fc.parameters(), 'lr': 1e-4}]
+                     {'params': model.classifier.parameters(), 'lr': 1e-4}]
     optimizer = optim.Adam(optim_configs, lr=1e-4)
 
     meter_loss = tnt.meter.AverageValueMeter()
