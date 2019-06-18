@@ -19,9 +19,13 @@ pip install git+https://github.com/leftthomas/CapsuleLayer.git@master
 ```
 conda install opencv
 ```
+- COCO API
+```
+pip install git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI
+```
 
 ## Datasets
-TODO
+[COCO](http://cocodataset.org)
 
 ## Usage
 ### Train Model
@@ -46,7 +50,7 @@ optional arguments:
 Generated results are on `results` directory.
 
 ## Results
-The train/test loss, accuracy and confusion matrix are showed on visdom.
+The train/test loss, accuracy, confusion matrix and heatmap are showed on visdom.
 
 - VOC
 ![result](results/voc.png)
