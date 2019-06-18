@@ -52,6 +52,7 @@ if __name__ == '__main__':
                                                                        'columnnames': test_loader.dataset.classes,
                                                                        'rownames': test_loader.dataset.classes})
 
+    best_acc = 0
     for epoch in range(1, NUM_EPOCH + 1):
         # train loop
         model.train()
@@ -105,12 +106,14 @@ if __name__ == '__main__':
             results['test_loss'].append(meter_loss.value()[0])
             results['test_accuracy_1'].append(meter_accuracy.value()[0])
             results['test_accuracy_5'].append(meter_accuracy.value()[1])
+            if meter_accuracy.value()[0] > best_acc:
+                best_acc = meter_accuracy.value()[0]
+                # save model
+                torch.save(model.state_dict(), 'epochs/{}.pth'.format(DATA_NAME))
             meter_loss.reset()
             meter_accuracy.reset()
             meter_confuse.reset()
 
-        # save model
-        torch.save(model.state_dict(), 'epochs/{}_{}.pth'.format(DATA_NAME, epoch))
         # save statistics
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
         data_frame.to_csv('statistics/{}_results.csv'.format(DATA_NAME), index_label='epoch')
