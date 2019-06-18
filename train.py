@@ -57,10 +57,14 @@ if __name__ == '__main__':
     test_confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Test Confusion Matrix',
                                                                        'columnnames': test_loader.dataset.classes,
                                                                        'rownames': test_loader.dataset.classes})
-    train_original_logger = VisdomLogger('image', env=DATA_NAME, opts={'title': 'Train Original Image'})
-    train_features_logger = VisdomLogger('image', env=DATA_NAME, opts={'title': 'Train Features Heatmap'})
-    test_original_logger = VisdomLogger('image', env=DATA_NAME, opts={'title': 'Test Original Image'})
-    test_features_logger = VisdomLogger('image', env=DATA_NAME, opts={'title': 'Test Features Heatmap'})
+    train_original_logger = VisdomLogger('image', env=DATA_NAME,
+                                         opts={'title': 'Train Original Image', 'width': 336, 'height': 336})
+    train_features_logger = VisdomLogger('image', env=DATA_NAME,
+                                         opts={'title': 'Train Features Heatmap', 'width': 336, 'height': 336})
+    test_original_logger = VisdomLogger('image', env=DATA_NAME,
+                                        opts={'title': 'Test Original Image', 'width': 336, 'height': 336})
+    test_features_logger = VisdomLogger('image', env=DATA_NAME,
+                                        opts={'title': 'Test Features Heatmap', 'width': 336, 'height': 336})
     nrow = math.floor(math.sqrt(BATCH_SIZE))
 
     best_acc = 0
@@ -131,16 +135,20 @@ if __name__ == '__main__':
             probam = utils.ProbAM(model)
             # for train image
             train_images, train_labels = next(iter(train_loader))
-            train_original_logger.log(make_grid(train_images, nrow=nrow, padding=4, pad_value=255).numpy())
+            train_original_logger.log(
+                make_grid(train_images, nrow=nrow, padding=4, pad_value=255, normalize=True).numpy())
             train_images = train_images.to(device)
             train_heat_maps = probam(train_images)
-            train_features_logger.log(make_grid(train_heat_maps, nrow=nrow, padding=4, pad_value=255).numpy())
+            train_features_logger.log(
+                make_grid(train_heat_maps, nrow=nrow, padding=4, pad_value=255, normalize=True).numpy())
             # for test image
             test_images, test_labels = next(iter(test_loader))
-            test_original_logger.log(make_grid(test_images, nrow=nrow, padding=4, pad_value=255).numpy())
+            test_original_logger.log(
+                make_grid(test_images, nrow=nrow, padding=4, pad_value=255, normalize=True).numpy())
             test_images = test_images.to(device)
             test_heat_maps = probam(test_images)
-            test_features_logger.log(make_grid(test_heat_maps, nrow=nrow, padding=4, pad_value=255).numpy())
+            test_features_logger.log(
+                make_grid(test_heat_maps, nrow=nrow, padding=4, pad_value=255, normalize=True).numpy())
 
         # save statistics
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
