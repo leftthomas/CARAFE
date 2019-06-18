@@ -5,12 +5,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchnet as tnt
-import torchvision.transforms as transforms
-from torch.utils.data.dataloader import DataLoader
 from torchnet.logger import VisdomPlotLogger, VisdomLogger
-from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 
+import utils
 from model import Model
 
 if __name__ == '__main__':
@@ -29,16 +27,12 @@ if __name__ == '__main__':
 
     # Data
     print('==> Preparing data..')
-    transform_train = transforms.Compose([transforms.Resize(224), transforms.RandomCrop(224), transforms.ToTensor()])
-    transform_test = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
-    train_set = ImageFolder(root='data/{}/train'.format(DATA_NAME), transform=transform_train)
-    train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=16)
-    test_set = ImageFolder(root='data/{}/test'.format(DATA_NAME), transform=transform_test)
-    test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=16)
+    train_loader = utils.load_data(DATA_NAME, 'train', BATCH_SIZE)
+    test_loader = utils.load_data(DATA_NAME, 'test', BATCH_SIZE)
 
     # Model
     print('==> Building model..')
-    model = Model(len(train_set.classes)).to(device)
+    model = Model(len(train_loader.dataset.classes)).to(device)
     print("# parameters:", sum(param.numel() for param in model.parameters()))
     criterion = nn.CrossEntropyLoss()
     optim_configs = [{'params': model.features.parameters(), 'lr': 1e-4 * 10},
@@ -47,15 +41,15 @@ if __name__ == '__main__':
 
     meter_loss = tnt.meter.AverageValueMeter()
     meter_accuracy = tnt.meter.ClassErrorMeter(topk=[1, 5], accuracy=True)
-    meter_confuse = tnt.meter.ConfusionMeter(len(train_set.classes), normalized=True)
+    meter_confuse = tnt.meter.ConfusionMeter(len(train_loader.dataset.classes), normalized=True)
     loss_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Loss'})
     accuracy_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Accuracy'})
     train_confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Train Confusion Matrix',
-                                                                        'columnnames': train_set.classes,
-                                                                        'rownames': train_set.classes})
+                                                                        'columnnames': train_loader.dataset.classes,
+                                                                        'rownames': train_loader.dataset.classes})
     test_confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Test Confusion Matrix',
-                                                                       'columnnames': test_set.classes,
-                                                                       'rownames': test_set.classes})
+                                                                       'columnnames': test_loader.dataset.classes,
+                                                                       'rownames': test_loader.dataset.classes})
 
     for epoch in range(1, NUM_EPOCH + 1):
         # train loop
@@ -72,9 +66,10 @@ if __name__ == '__main__':
             meter_loss.add(loss.item())
             meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
             meter_confuse.add(out.detach().cpu(), label.detach().cpu())
-            train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 Accuracy: '
-                                           '{:.2f}%'.format(epoch, num_data, len(train_set), meter_loss.value()[0],
-                                                            meter_accuracy.value()[0], meter_accuracy.value()[1]))
+            train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 '
+                                           'Accuracy: {:.2f}%'.format(epoch, num_data, len(train_loader.dataset),
+                                                                      meter_loss.value()[0], meter_accuracy.
+                                                                      value()[0], meter_accuracy.value()[1]))
         loss_logger.log(epoch, meter_loss.value()[0], name='train')
         accuracy_logger.log(epoch, meter_accuracy.value()[0], name='train_top1')
         accuracy_logger.log(epoch, meter_accuracy.value()[1], name='train_top5')
@@ -99,7 +94,7 @@ if __name__ == '__main__':
                 meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
                 meter_confuse.add(out.detach().cpu(), label.detach().cpu())
                 test_progress.set_description('Test Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 '
-                                              'Accuracy: {:.2f}%'.format(epoch, num_data, len(test_set),
+                                              'Accuracy: {:.2f}%'.format(epoch, num_data, len(test_loader.dataset),
                                                                          meter_loss.value()[0], meter_accuracy.
                                                                          value()[0], meter_accuracy.value()[1]))
             loss_logger.log(epoch, meter_loss.value()[0], name='test')

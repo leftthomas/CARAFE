@@ -1,4 +1,5 @@
 import argparse
+import math
 
 import torch
 from torchvision.utils import save_image
@@ -6,20 +7,19 @@ from torchvision.utils import save_image
 from probam import ProbAM
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Visualize Capsule Network and CNN Focused Parts')
-    parser.add_argument('--data_type', default='STL10', type=str,
-                        choices=['MNIST', 'FashionMNIST', 'SVHN', 'CIFAR10', 'STL10'], help='dataset type')
-    parser.add_argument('--data_mode', default='test_single', type=str,
-                        choices=['test_single', 'test_multi'], help='visualized data mode')
+    parser = argparse.ArgumentParser(description='Visualize Capsule Network Focused Parts')
+    parser.add_argument('--data_name', default='voc', type=str, choices=['voc', 'coco', 'cityscapes'],
+                        help='dataset name')
+    parser.add_argument('--batch_size', default=64, type=int, help='vis batch size')
     parser.add_argument('--num_iterations', default=3, type=int, help='routing iterations number')
+
     opt = parser.parse_args()
+    DATA_NAME, BATCH_SIZE, NUM_EPOCH = opt.data_name, opt.batch_size, opt.num_epochs
+    nrow = math.floor(math.sqrt(BATCH_SIZE))
 
-    DATA_TYPE = opt.data_type
-    DATA_MODE = opt.data_mode
-    NUM_ITERATIONS = opt.num_iterations
-    batch_size = 16 if DATA_MODE == 'test_single' else 8
-    nrow = 4 if DATA_MODE == 'test_single' else 2
-
+    transform_test = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
+    test_set = ImageFolder(root='data/{}/test'.format(DATA_NAME), transform=transform_test)
+    test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=16)
     images, labels = next(iter(get_iterator(DATA_TYPE, DATA_MODE, batch_size, False)))
     save_image(images, filename='vis_%s_%s_original.png' % (DATA_TYPE, DATA_MODE), nrow=nrow, normalize=True, padding=4,
                pad_value=255)
