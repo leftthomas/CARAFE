@@ -38,13 +38,13 @@ class ProbAM:
 
         features_heat_maps = []
         for img, heat_map in zip(images, mask):
-            img = img.detach().cpu().numpy().transpose((1, 2, 0))[:, :, ::-1]
+            img = np.ascontiguousarray(img.detach().cpu().numpy().transpose((1, 2, 0))[:, :, ::-1])
             heat_map = heat_map.detach().cpu().numpy().transpose((1, 2, 0))
             heat_map = np.float32(cv2.applyColorMap(np.uint8(255 * heat_map), cv2.COLORMAP_JET))
             cam = heat_map + np.float32(np.uint8(img * 255))
             cam = cam - np.min(cam)
             if np.max(cam) != 0:
                 cam = cam / np.max(cam)
-            features_heat_maps.append(torch.from_numpy(cam.transpose((2, 0, 1))[:, :, ::-1]))
+            features_heat_maps.append(torch.from_numpy(np.ascontiguousarray(cam.transpose((2, 0, 1))[:, :, ::-1])))
         features_heat_maps = torch.stack(features_heat_maps)
         return features_heat_maps
