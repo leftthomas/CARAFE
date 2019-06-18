@@ -72,14 +72,12 @@ if __name__ == '__main__':
 
     data_loader = load_data(DATA_NAME, 'test', BATCH_SIZE, shuffle=True)
     images, labels = next(iter(data_loader))
-    save_image(images, filename='results/vis_{}_original.png'.format(DATA_NAME), nrow=nrow, normalize=True, padding=4,
-               pad_value=255)
+    save_image(images, filename='results/vis_{}_original.png'.format(DATA_NAME), nrow=nrow, padding=4, pad_value=255)
 
     model = Model(len(data_loader.dataset.classes), NUM_ITERATIONS)
     model.load_state_dict(torch.load('epochs/{}.pth'.format(DATA_NAME), map_location='cpu'))
     model, images = model.to(device), images.to(device)
     probam = ProbAM(model)
 
-    features_heat_maps = probam(images)
-    save_image(features_heat_maps, filename='results/vis_{}_features.png'.format(DATA_NAME), nrow=nrow, padding=4,
-               pad_value=255)
+    heat_maps = probam(images)
+    save_image(heat_maps, filename='results/vis_{}_features.png'.format(DATA_NAME), nrow=nrow, padding=4, pad_value=255)
