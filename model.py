@@ -10,7 +10,7 @@ class Model(nn.Module):
         super(Model, self).__init__()
 
         # backbone
-        basic_model, layers = resnet18(pretrained=False), []
+        basic_model, layers = resnet18(pretrained=True), []
         for name, module in basic_model.named_children():
             if isinstance(module, nn.Linear) or isinstance(module, nn.AdaptiveAvgPool2d):
                 continue
