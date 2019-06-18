@@ -32,19 +32,19 @@ class ProbAM:
         prob = (probs * classes.unsqueeze(dim=-1)).sum(dim=1)
         prob = prob.view(prob.size(0), *features.size()[-2:], -1)
         prob = prob.permute(0, 3, 1, 2).sum(dim=1, keepdim=True)
-        mask = F.interpolate(prob, image_size, mode='bicubic')
+        mask = F.interpolate(prob, image_size, mode='bicubic', align_corners=True)
         mask = mask.view(mask.size(0), 1, -1) - mask.view(mask.size(0), 1, -1).min(dim=-1, keepdim=True)[0]
         mask = (mask / mask.max(dim=-1, keepdim=True)[0].clamp(min=1e-8)).view(mask.size(0), 1, *image_size)
 
         features_heat_maps = []
         for img, heat_map in zip(images, mask):
-            img = img.detach().cpu().numpy().transpose((1, 2, 0))
+            img = img.detach().cpu().numpy().transpose((1, 2, 0))[:, :, ::-1]
             heat_map = heat_map.detach().cpu().numpy().transpose((1, 2, 0))
             heat_map = np.float32(cv2.applyColorMap(np.uint8(255 * heat_map), cv2.COLORMAP_JET))
             cam = heat_map + np.float32(np.uint8(img * 255))
             cam = cam - np.min(cam)
             if np.max(cam) != 0:
                 cam = cam / np.max(cam)
-            features_heat_maps.append(torch.from_numpy(cam.transpose((2, 0, 1))))
+            features_heat_maps.append(torch.from_numpy(cam.transpose((2, 0, 1))[:, :, ::-1]))
         features_heat_maps = torch.stack(features_heat_maps)
         return features_heat_maps
