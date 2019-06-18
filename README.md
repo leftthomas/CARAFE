@@ -37,7 +37,7 @@ Visdom now can be accessed by going to `127.0.0.1:8097/$data_type` in your brows
 
 ### Visualization
 ```
-python vis.py --data_type coco
+python utils.py --data_type coco
 optional arguments:
 --data_name                   dataset name [default value is 'voc'](choices=['voc', 'coco', 'cityscapes'])
 --batch_size                  vis batch size [default value is 64]
