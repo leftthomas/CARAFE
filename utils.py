@@ -29,22 +29,24 @@ class ProbAM:
         out, probs = self.model.classifier(out)
         classes = out.norm(dim=-1)
 
-        prob = (probs * classes.unsqueeze(dim=-1)).sum(dim=1)
-        prob = prob.view(prob.size(0), *features.size()[-2:], -1)
-        prob = prob.permute(0, 3, 1, 2).sum(dim=1, keepdim=True)
-        mask = F.interpolate(prob, image_size, mode='bicubic', align_corners=True)
-        mask = mask.view(mask.size(0), 1, -1) - mask.view(mask.size(0), 1, -1).min(dim=-1, keepdim=True)[0]
-        mask = (mask / mask.max(dim=-1, keepdim=True)[0].clamp(min=1e-8)).view(mask.size(0), 1, *image_size)
+        probs = (probs * classes.unsqueeze(dim=-1)).sum(dim=1)
+        probs = probs.view(probs.size(0), *features.size()[-2:], -1)
+        probs = probs.permute(0, 3, 1, 2).sum(dim=1, keepdim=True)
+        masks = F.interpolate(probs, image_size, mode='bicubic', align_corners=True)
+        masks = masks.view(masks.size(0), 1, -1) - masks.view(masks.size(0), 1, -1).min(dim=-1, keepdim=True)[0]
+        masks = (masks / masks.max(dim=-1, keepdim=True)[0].clamp(min=1e-8)).view(masks.size(0), 1, *image_size)
 
-        features_heat_maps = []
-        for img, heat_map in zip(images, mask):
+        heat_maps = []
+        for img, mask in zip(images, masks):
+            # change image to BGR
             img = np.ascontiguousarray(img.detach().cpu().numpy().transpose((1, 2, 0))[:, :, ::-1])
-            heat_map = heat_map.detach().cpu().numpy().transpose((1, 2, 0))
-            heat_map = np.float32(cv2.applyColorMap(np.uint8(255 * heat_map), cv2.COLORMAP_JET))
+            mask = np.ascontiguousarray(mask.detach().cpu().numpy().transpose((1, 2, 0))[:, :, ::-1])
+            heat_map = np.float32(cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET))
             cam = heat_map + np.float32(np.uint8(img * 255))
             cam = cam - np.min(cam)
             if np.max(cam) != 0:
                 cam = cam / np.max(cam)
-            features_heat_maps.append(torch.from_numpy(np.ascontiguousarray(cam.transpose((2, 0, 1))[:, :, ::-1])))
-        features_heat_maps = torch.stack(features_heat_maps)
-        return features_heat_maps
+            # revert image to RGB
+            heat_maps.append(torch.from_numpy(np.ascontiguousarray(cam[:, :, ::-1].transpose((2, 0, 1)))))
+        heat_maps = torch.stack(heat_maps)
+        return heat_maps
