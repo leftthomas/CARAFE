@@ -39,6 +39,8 @@ if __name__ == '__main__':
     optim_configs = [{'params': model.features.parameters(), 'lr': 1e-4 * 10},
                      {'params': model.classifier.parameters(), 'lr': 1e-4}]
     optimizer = optim.Adam(optim_configs, lr=1e-4)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[int(NUM_EPOCH * 0.7), int(NUM_EPOCH * 0.9)],
+                                               gamma=0.1)
 
     meter_loss = tnt.meter.AverageValueMeter()
     meter_accuracy = tnt.meter.ClassErrorMeter(topk=[1, 5], accuracy=True)
@@ -79,6 +81,7 @@ if __name__ == '__main__':
         results['train_loss'].append(meter_loss.value()[0])
         results['train_accuracy_1'].append(meter_accuracy.value()[0])
         results['train_accuracy_5'].append(meter_accuracy.value()[1])
+        scheduler.step()
         meter_loss.reset()
         meter_accuracy.reset()
         meter_confuse.reset()
