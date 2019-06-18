@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     data_loader = utils.load_data(DATA_NAME, 'test', BATCH_SIZE, shuffle=True)
     images, labels = next(iter(data_loader))
-    save_image(images, filename='vis_{}_original.png'.format(DATA_NAME), nrow=nrow, normalize=True, padding=4,
+    save_image(images, filename='results/vis_{}_original.png'.format(DATA_NAME), nrow=nrow, normalize=True, padding=4,
                pad_value=255)
 
     model = Model(len(data_loader.dataset.classes), NUM_ITERATIONS)
@@ -30,5 +30,5 @@ if __name__ == '__main__':
     probam = utils.ProbAM(model)
 
     features_heat_maps = probam(images)
-    save_image(features_heat_maps, filename='vis_{}_features.png'.format(DATA_NAME), nrow=nrow, padding=4,
+    save_image(features_heat_maps, filename='results/vis_{}_features.png'.format(DATA_NAME), nrow=nrow, padding=4,
                pad_value=255)

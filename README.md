@@ -1,4 +1,4 @@
-# CCN
+# PCN
 A PyTorch implementation of ProbAM-guided Capsule Network based on the paper [ProbAM-guided Capsule Network for Object Detection]().
 
 ## Requirements
@@ -30,19 +30,20 @@ visdom -logging_level WARNING & python train.py --num_epochs 200
 optional arguments:
 --data_name                   dataset name [default value is 'voc'](choices=['voc', 'coco', 'cityscapes'])
 --batch_size                  train batch size [default value is 32]
+--num_iterations              routing iterations number [default value is 3]
 --num_epochs                  train epochs number [default value is 100]
 ```
 Visdom now can be accessed by going to `127.0.0.1:8097/$data_type` in your browser.
 
 ### Visualization
 ```
-python vis.py --data_type CIFAR10
+python vis.py --data_type coco
 optional arguments:
---data_type                dataset type [default value is 'STL10'](choices:['MNIST', 'FashionMNIST', 'SVHN', 'CIFAR10', 'STL10'])
---data_mode                visualized data mode [default value is 'test_single'](choices:['test_single', 'test_multi'])
---num_iterations           routing iterations number [default value is 3]
+--data_name                   dataset name [default value is 'voc'](choices=['voc', 'coco', 'cityscapes'])
+--batch_size                  vis batch size [default value is 64]
+--num_iterations              routing iterations number [default value is 3]
 ```
-Generated results are on the same directory with `README.md`.
+Generated results are on `results` directory.
 
 ## Results
 The train/test loss, accuracy and confusion matrix are showed on visdom.
