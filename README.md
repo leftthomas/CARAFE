@@ -29,7 +29,7 @@ TODO
 visdom -logging_level WARNING & python train.py --num_epochs 200
 optional arguments:
 --data_name                   dataset name [default value is 'voc'](choices=['voc', 'coco', 'cityscapes'])
---batch_size                  train batch size [default value is 32]
+--batch_size                  train batch size [default value is 64]
 --num_iterations              routing iterations number [default value is 3]
 --num_epochs                  train epochs number [default value is 100]
 ```
