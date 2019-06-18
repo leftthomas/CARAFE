@@ -58,13 +58,13 @@ if __name__ == '__main__':
                                                                        'columnnames': test_loader.dataset.classes,
                                                                        'rownames': test_loader.dataset.classes})
     train_original_logger = VisdomLogger('image', env=DATA_NAME,
-                                         opts={'title': 'Train Original Image', 'width': 370, 'height': 370})
+                                         opts={'title': 'Train Original Image', 'width': 374, 'height': 374})
     train_features_logger = VisdomLogger('image', env=DATA_NAME,
-                                         opts={'title': 'Train Features Heatmap', 'width': 370, 'height': 370})
+                                         opts={'title': 'Train Features Heatmap', 'width': 374, 'height': 374})
     test_original_logger = VisdomLogger('image', env=DATA_NAME,
-                                        opts={'title': 'Test Original Image', 'width': 370, 'height': 370})
+                                        opts={'title': 'Test Original Image', 'width': 374, 'height': 374})
     test_features_logger = VisdomLogger('image', env=DATA_NAME,
-                                        opts={'title': 'Test Features Heatmap', 'width': 370, 'height': 370})
+                                        opts={'title': 'Test Features Heatmap', 'width': 374, 'height': 374})
     nrow = math.floor(math.sqrt(BATCH_SIZE))
 
     best_acc = 0
