@@ -19,8 +19,8 @@ def load_data(data_name, data_type, batch_size, shuffle=True):
     else:
         transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
     if data_name == 'voc':
-        data_set = VOCDetection(root='data/{}'.format(data_name), image_set='val' if data_type == 'test' else data_type,
-                                download=True, transform=transform)
+        data_set = VOCDetection(root='data/{}'.format(data_name), image_set=data_type, download=True,
+                                transform=transform)
     elif data_name == 'coco':
         data_set = CocoDetection(root='data/{}/{}'.format(data_name, data_type),
                                  annFile='data/{}/{}/ann.file'.format(data_name, data_type), transform=transform)
