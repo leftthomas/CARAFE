@@ -57,13 +57,17 @@ if __name__ == '__main__':
                                                                        'columnnames': test_loader.dataset.classes,
                                                                        'rownames': test_loader.dataset.classes})
     train_original_logger = VisdomLogger('image', env=DATA_NAME,
-                                         opts={'title': 'Train Original Image', 'width': 374, 'height': 374})
-    train_features_logger = VisdomLogger('image', env=DATA_NAME,
+                                         opts={'title': 'Train Original Images', 'width': 374, 'height': 374})
+    train_heatmaps_logger = VisdomLogger('image', env=DATA_NAME,
                                          opts={'title': 'Train Features Heatmap', 'width': 374, 'height': 374})
+    train_cams_logger = VisdomLogger('image', env=DATA_NAME,
+                                     opts={'title': 'Train Features CAM', 'width': 374, 'height': 374})
     test_original_logger = VisdomLogger('image', env=DATA_NAME,
-                                        opts={'title': 'Test Original Image', 'width': 374, 'height': 374})
-    test_features_logger = VisdomLogger('image', env=DATA_NAME,
+                                        opts={'title': 'Test Original Images', 'width': 374, 'height': 374})
+    test_heatmaps_logger = VisdomLogger('image', env=DATA_NAME,
                                         opts={'title': 'Test Features Heatmap', 'width': 374, 'height': 374})
+    test_cams_logger = VisdomLogger('image', env=DATA_NAME,
+                                    opts={'title': 'Test Features CAM', 'width': 374, 'height': 374})
 
     best_acc = 0
     for epoch in range(1, NUM_EPOCH + 1):
@@ -135,15 +139,17 @@ if __name__ == '__main__':
             train_images = train_images[:16]
             train_original_logger.log(make_grid(train_images, nrow=4, padding=4).numpy())
             train_images = train_images.to(device)
-            train_heat_maps = probam(train_images)
-            train_features_logger.log(make_grid(train_heat_maps, nrow=4, padding=4).numpy())
+            train_heat_maps, train_cams = probam(train_images)
+            train_heatmaps_logger.log(make_grid(train_heat_maps, nrow=4, padding=4).numpy())
+            train_cams_logger.log(make_grid(train_cams, nrow=4, padding=4).numpy())
             # for test image
             test_images, _ = next(iter(test_loader))
             test_images = test_images[:16]
             test_original_logger.log(make_grid(test_images, nrow=4, padding=4).numpy())
             test_images = test_images.to(device)
-            test_heat_maps = probam(test_images)
-            test_features_logger.log(make_grid(test_heat_maps, nrow=4, padding=4).numpy())
+            test_heat_maps, test_cams = probam(test_images)
+            test_heatmaps_logger.log(make_grid(test_heat_maps, nrow=4, padding=4).numpy())
+            test_cams_logger.log(make_grid(test_cams, nrow=4, padding=4).numpy())
 
         # save statistics
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))

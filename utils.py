@@ -46,20 +46,21 @@ class ProbAM:
         masks = masks.view(masks.size(0), 1, -1) - masks.view(masks.size(0), 1, -1).min(dim=-1, keepdim=True)[0]
         masks = (masks / masks.max(dim=-1, keepdim=True)[0].clamp(min=1e-8)).view(masks.size(0), 1, *image_size)
 
-        heat_maps = []
+        heat_maps, cams = [], []
         for img, mask in zip(images, masks):
             # change image to BGR
             img = np.ascontiguousarray(img.detach().cpu().numpy().transpose((1, 2, 0))[:, :, ::-1])
             mask = np.ascontiguousarray(mask.detach().cpu().numpy().transpose((1, 2, 0))[:, :, ::-1])
             heat_map = np.float32(cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET))
+            heat_maps.append(torch.from_numpy(np.ascontiguousarray(heat_map[:, :, ::-1].transpose((2, 0, 1)))))
             cam = heat_map + np.float32(np.uint8(img * 255))
             cam = cam - np.min(cam)
             if np.max(cam) != 0:
                 cam = cam / np.max(cam)
             # revert image to RGB
-            heat_maps.append(torch.from_numpy(np.ascontiguousarray(cam[:, :, ::-1].transpose((2, 0, 1)))))
-        heat_maps = torch.stack(heat_maps)
-        return heat_maps
+            cams.append(torch.from_numpy(np.ascontiguousarray(cam[:, :, ::-1].transpose((2, 0, 1)))))
+        heat_maps, cams = torch.stack(heat_maps), torch.stack(cams)
+        return heat_maps, cams
 
 
 if __name__ == '__main__':
@@ -83,5 +84,6 @@ if __name__ == '__main__':
     model, images = model.to(device), images.to(device)
     probam = ProbAM(model)
 
-    heat_maps = probam(images)
-    save_image(heat_maps, filename='results/vis_{}_features.png'.format(DATA_NAME), nrow=nrow, padding=4)
+    heat_maps, cams = probam(images)
+    save_image(heat_maps, filename='results/vis_{}_heatmaps.png'.format(DATA_NAME), nrow=nrow, padding=4)
+    save_image(cams, filename='results/vis_{}_cams.png'.format(DATA_NAME), nrow=nrow, padding=4)
