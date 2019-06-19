@@ -3,6 +3,7 @@ import argparse
 import pandas as pd
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 import torchnet as tnt
 from capsule_layer.optim import MultiStepRI
@@ -27,7 +28,7 @@ if __name__ == '__main__':
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     results = {'train_loss': [], 'test_loss': [], 'train_accuracy_1': [], 'test_accuracy_1': [], 'train_accuracy_5': [],
-               'test_accuracy_5': []}
+               'test_accuracy_5': [], 'train_map': [], 'test_map': []}
 
     # Data
     print('==> Preparing data..')
@@ -47,9 +48,11 @@ if __name__ == '__main__':
 
     meter_loss = tnt.meter.AverageValueMeter()
     meter_accuracy = tnt.meter.ClassErrorMeter(topk=[1, 5], accuracy=True)
+    meter_map = tnt.meter.mAPMeter()
     meter_confuse = tnt.meter.ConfusionMeter(len(train_loader.dataset.classes), normalized=True)
     loss_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Loss'})
     accuracy_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Accuracy'})
+    map_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'mAP'})
     train_confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Train Confusion Matrix',
                                                                         'columnnames': train_loader.dataset.classes,
                                                                         'rownames': train_loader.dataset.classes})
@@ -84,21 +87,27 @@ if __name__ == '__main__':
             optimizer.step()
             meter_loss.add(loss.item())
             meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
+            meter_map.add(out.detach().cpu(), F.one_hot(label, num_classes=len(train_loader.dataset.classes))
+                          .detach().cpu())
             meter_confuse.add(out.detach().cpu(), label.detach().cpu())
-            train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 '
-                                           'Accuracy: {:.2f}%'.format(epoch, num_data, len(train_loader.dataset),
-                                                                      meter_loss.value()[0], meter_accuracy.
-                                                                      value()[0], meter_accuracy.value()[1]))
+            train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 Accuracy: '
+                                           '{:.2f}% mAP: {:.2f}%'.format(epoch, num_data, len(train_loader.dataset),
+                                                                         meter_loss.value()[0], meter_accuracy
+                                                                         .value()[0], meter_accuracy.value()[1],
+                                                                         meter_map.value()))
         loss_logger.log(epoch, meter_loss.value()[0], name='train')
         accuracy_logger.log(epoch, meter_accuracy.value()[0], name='train_top1')
         accuracy_logger.log(epoch, meter_accuracy.value()[1], name='train_top5')
+        map_logger.log(epoch, meter_map.value(), name='train')
         train_confuse_logger.log(meter_confuse.value())
         results['train_loss'].append(meter_loss.value()[0])
         results['train_accuracy_1'].append(meter_accuracy.value()[0])
         results['train_accuracy_5'].append(meter_accuracy.value()[1])
+        results['train_map'].append(meter_map.value())
         lr_scheduler.step()
         meter_loss.reset()
         meter_accuracy.reset()
+        meter_map.reset()
         meter_confuse.reset()
 
         # test loop
@@ -112,24 +121,30 @@ if __name__ == '__main__':
                 loss = criterion(out, label)
                 meter_loss.add(loss.item())
                 meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
+                meter_map.add(out.detach().cpu(), F.one_hot(label, num_classes=len(train_loader.dataset.classes))
+                              .detach().cpu())
                 meter_confuse.add(out.detach().cpu(), label.detach().cpu())
-                test_progress.set_description('Test Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 '
-                                              'Accuracy: {:.2f}%'.format(epoch, num_data, len(test_loader.dataset),
-                                                                         meter_loss.value()[0], meter_accuracy.
-                                                                         value()[0], meter_accuracy.value()[1]))
+                test_progress.set_description('Test Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 Accuracy'
+                                              ': {:.2f}% mAP: {:.2f}%'.format(epoch, num_data, len(test_loader.dataset),
+                                                                              meter_loss.value()[0], meter_accuracy
+                                                                              .value()[0], meter_accuracy.value()[1],
+                                                                              meter_map.value()))
             loss_logger.log(epoch, meter_loss.value()[0], name='test')
             accuracy_logger.log(epoch, meter_accuracy.value()[0], name='test_top1')
             accuracy_logger.log(epoch, meter_accuracy.value()[1], name='test_top5')
+            map_logger.log(epoch, meter_map.value(), name='test')
             test_confuse_logger.log(meter_confuse.value())
             results['test_loss'].append(meter_loss.value()[0])
             results['test_accuracy_1'].append(meter_accuracy.value()[0])
             results['test_accuracy_5'].append(meter_accuracy.value()[1])
+            results['test_map'].append(meter_map.value())
             if meter_accuracy.value()[0] > best_acc:
                 best_acc = meter_accuracy.value()[0]
                 # save model
                 torch.save(model.state_dict(), 'epochs/{}.pth'.format(DATA_NAME))
             meter_loss.reset()
             meter_accuracy.reset()
+            meter_map.reset()
             meter_confuse.reset()
 
             # generate vis results
