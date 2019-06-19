@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torch.utils.data.dataloader import DataLoader
-from torchvision.datasets import ImageFolder, CocoDetection
+from torchvision.datasets import ImageFolder, CocoDetection, VOCDetection
 from torchvision.utils import save_image
 
 from model import Model
@@ -19,10 +19,14 @@ def load_data(data_name, data_type, batch_size, shuffle=True):
     else:
         transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
     if data_name == 'voc':
-        data_set = ImageFolder(root='data/{}/{}'.format(data_name, data_type), transform=transform)
+        data_set = VOCDetection(root='data/{}'.format(data_name), image_set='val' if data_type == 'test' else data_type,
+                                download=True, transform=transform)
     elif data_name == 'coco':
         data_set = CocoDetection(root='data/{}/{}'.format(data_name, data_type),
                                  annFile='data/{}/{}/ann.file'.format(data_name, data_type), transform=transform)
+    else:
+        data_set = ImageFolder(root='data/{}/{}'.format(data_name, data_type), transform=transform)
+
     data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=shuffle, num_workers=16)
     return data_loader
 
@@ -75,7 +79,7 @@ if __name__ == '__main__':
     nrow = math.floor(math.sqrt(BATCH_SIZE))
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    data_loader = load_data(DATA_NAME, 'test', BATCH_SIZE, shuffle=True)
+    data_loader = load_data(DATA_NAME, 'val', BATCH_SIZE, shuffle=True)
     images, labels = next(iter(data_loader))
     save_image(images, filename='results/vis_{}_original.png'.format(DATA_NAME), nrow=nrow, padding=4)
 

@@ -130,7 +130,7 @@ if __name__ == '__main__':
     # Data
     print('==> Preparing data..')
     train_loader = utils.load_data(DATA_NAME, 'train', BATCH_SIZE, shuffle=True)
-    test_loader = utils.load_data(DATA_NAME, 'test', BATCH_SIZE, shuffle=True)
+    test_loader = utils.load_data(DATA_NAME, 'val', BATCH_SIZE, shuffle=True)
 
     # Model
     print('==> Building model..')
