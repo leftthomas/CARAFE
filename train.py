@@ -1,5 +1,4 @@
 import argparse
-import math
 
 import pandas as pd
 import torch
@@ -65,7 +64,6 @@ if __name__ == '__main__':
                                         opts={'title': 'Test Original Image', 'width': 374, 'height': 374})
     test_features_logger = VisdomLogger('image', env=DATA_NAME,
                                         opts={'title': 'Test Features Heatmap', 'width': 374, 'height': 374})
-    nrow = math.floor(math.sqrt(BATCH_SIZE))
 
     best_acc = 0
     for epoch in range(1, NUM_EPOCH + 1):
@@ -95,7 +93,6 @@ if __name__ == '__main__':
         results['train_accuracy_1'].append(meter_accuracy.value()[0])
         results['train_accuracy_5'].append(meter_accuracy.value()[1])
         lr_scheduler.step()
-        iter_scheduler.step()
         meter_loss.reset()
         meter_accuracy.reset()
         meter_confuse.reset()
@@ -134,18 +131,21 @@ if __name__ == '__main__':
             # generate vis results
             probam = utils.ProbAM(model)
             # for train image
-            train_images, train_labels = next(iter(train_loader))
-            train_original_logger.log(make_grid(train_images, nrow=nrow, padding=4).numpy())
+            train_images, _ = next(iter(train_loader))
+            train_images = train_images[:16]
+            train_original_logger.log(make_grid(train_images, nrow=4, padding=4).numpy())
             train_images = train_images.to(device)
             train_heat_maps = probam(train_images)
-            train_features_logger.log(make_grid(train_heat_maps, nrow=nrow, padding=4).numpy())
+            train_features_logger.log(make_grid(train_heat_maps, nrow=4, padding=4).numpy())
             # for test image
-            test_images, test_labels = next(iter(test_loader))
-            test_original_logger.log(make_grid(test_images, nrow=nrow, padding=4).numpy())
+            test_images, _ = next(iter(test_loader))
+            test_images = test_images[:16]
+            test_original_logger.log(make_grid(test_images, nrow=4, padding=4).numpy())
             test_images = test_images.to(device)
             test_heat_maps = probam(test_images)
-            test_features_logger.log(make_grid(test_heat_maps, nrow=nrow, padding=4).numpy())
+            test_features_logger.log(make_grid(test_heat_maps, nrow=4, padding=4).numpy())
 
         # save statistics
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
         data_frame.to_csv('statistics/{}_results.csv'.format(DATA_NAME), index_label='epoch')
+        iter_scheduler.step()
