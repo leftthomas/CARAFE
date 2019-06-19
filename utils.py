@@ -12,7 +12,7 @@ from torchvision.utils import save_image
 
 from model import Model
 
-classes = {'voc': 20, 'coco': 80, 'cityscapes': 30}
+classes = {'voc': 20, 'coco': 80, 'cityscapes': 10}
 
 
 def load_data(data_name, data_type, batch_size, shuffle=True):
