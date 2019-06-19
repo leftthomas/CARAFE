@@ -94,16 +94,16 @@ if __name__ == '__main__':
                                            '{:.2f}% mAP: {:.2f}%'.format(epoch, num_data, len(train_loader.dataset),
                                                                          meter_loss.value()[0], meter_accuracy
                                                                          .value()[0], meter_accuracy.value()[1],
-                                                                         meter_map.value()))
+                                                                         meter_map.value() * 100.0))
         loss_logger.log(epoch, meter_loss.value()[0], name='train')
         accuracy_logger.log(epoch, meter_accuracy.value()[0], name='train_top1')
         accuracy_logger.log(epoch, meter_accuracy.value()[1], name='train_top5')
-        map_logger.log(epoch, meter_map.value(), name='train')
+        map_logger.log(epoch, meter_map.value() * 100.0, name='train')
         train_confuse_logger.log(meter_confuse.value())
         results['train_loss'].append(meter_loss.value()[0])
         results['train_accuracy_1'].append(meter_accuracy.value()[0])
         results['train_accuracy_5'].append(meter_accuracy.value()[1])
-        results['train_map'].append(meter_map.value())
+        results['train_map'].append(meter_map.value() * 100.0)
         lr_scheduler.step()
         meter_loss.reset()
         meter_accuracy.reset()
@@ -128,16 +128,16 @@ if __name__ == '__main__':
                                               ': {:.2f}% mAP: {:.2f}%'.format(epoch, num_data, len(test_loader.dataset),
                                                                               meter_loss.value()[0], meter_accuracy
                                                                               .value()[0], meter_accuracy.value()[1],
-                                                                              meter_map.value()))
+                                                                              meter_map.value() * 100.0))
             loss_logger.log(epoch, meter_loss.value()[0], name='test')
             accuracy_logger.log(epoch, meter_accuracy.value()[0], name='test_top1')
             accuracy_logger.log(epoch, meter_accuracy.value()[1], name='test_top5')
-            map_logger.log(epoch, meter_map.value(), name='test')
+            map_logger.log(epoch, meter_map.value() * 100.0, name='test')
             test_confuse_logger.log(meter_confuse.value())
             results['test_loss'].append(meter_loss.value()[0])
             results['test_accuracy_1'].append(meter_accuracy.value()[0])
             results['test_accuracy_5'].append(meter_accuracy.value()[1])
-            results['test_map'].append(meter_map.value())
+            results['test_map'].append(meter_map.value() * 100.0)
             if meter_accuracy.value()[0] > best_acc:
                 best_acc = meter_accuracy.value()[0]
                 # save model
