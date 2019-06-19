@@ -24,8 +24,8 @@ def load_data(data_name, data_type, batch_size, shuffle=True):
         data_set = VOCDetection(root='data/{}'.format(data_name), image_set=data_type, download=True,
                                 transform=transform)
     elif data_name == 'coco':
-        data_set = CocoDetection(root='data/{}/{}'.format(data_name, data_type),
-                                 annFile='data/{}/{}/ann.file'.format(data_name, data_type), transform=transform)
+        data_set = CocoDetection(root='data/{}/{}'.format(data_name, data_type), annFile='data/{}/instances_{}.json'
+                                 .format(data_name, data_type, data_type), transform=transform)
     else:
         data_set = ImageFolder(root='data/{}/{}'.format(data_name, data_type), transform=transform)
 
