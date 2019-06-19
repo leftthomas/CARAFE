@@ -60,17 +60,17 @@ if __name__ == '__main__':
                                                                        'columnnames': test_loader.dataset.classes,
                                                                        'rownames': test_loader.dataset.classes})
     train_original_logger = VisdomLogger('image', env=DATA_NAME,
-                                         opts={'title': 'Train Original Images', 'width': 373, 'height': 373})
+                                         opts={'title': 'Train Original Images', 'width': 372, 'height': 372})
     train_heatmaps_logger = VisdomLogger('image', env=DATA_NAME,
-                                         opts={'title': 'Train Features Heatmap', 'width': 373, 'height': 373})
+                                         opts={'title': 'Train Features Heatmap', 'width': 372, 'height': 372})
     train_cams_logger = VisdomLogger('image', env=DATA_NAME,
-                                     opts={'title': 'Train Features CAM', 'width': 373, 'height': 373})
+                                     opts={'title': 'Train Features CAM', 'width': 372, 'height': 372})
     test_original_logger = VisdomLogger('image', env=DATA_NAME,
-                                        opts={'title': 'Test Original Images', 'width': 373, 'height': 373})
+                                        opts={'title': 'Test Original Images', 'width': 372, 'height': 372})
     test_heatmaps_logger = VisdomLogger('image', env=DATA_NAME,
-                                        opts={'title': 'Test Features Heatmap', 'width': 373, 'height': 373})
+                                        opts={'title': 'Test Features Heatmap', 'width': 372, 'height': 372})
     test_cams_logger = VisdomLogger('image', env=DATA_NAME,
-                                    opts={'title': 'Test Features CAM', 'width': 373, 'height': 373})
+                                    opts={'title': 'Test Features CAM', 'width': 372, 'height': 372})
 
     best_acc = 0
     for epoch in range(1, NUM_EPOCH + 1):
