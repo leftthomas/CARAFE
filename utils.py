@@ -12,6 +12,8 @@ from torchvision.utils import save_image
 
 from model import Model
 
+classes = {'voc': 20, 'coco': 80, 'cityscapes': 30}
+
 
 def load_data(data_name, data_type, batch_size, shuffle=True):
     if data_type == 'train':
@@ -83,7 +85,7 @@ if __name__ == '__main__':
     images, labels = next(iter(data_loader))
     save_image(images, filename='results/vis_{}_original.png'.format(DATA_NAME), nrow=nrow, padding=4)
 
-    model = Model(len(data_loader.dataset.classes), NUM_ITERATIONS)
+    model = Model(classes[DATA_NAME], NUM_ITERATIONS)
     model.load_state_dict(torch.load('epochs/{}.pth'.format(DATA_NAME), map_location='cpu'))
     model, images = model.to(device), images.to(device)
     probam = ProbAM(model)

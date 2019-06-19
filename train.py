@@ -29,8 +29,7 @@ def train():
         optimizer.step()
         meter_loss.add(loss.item())
         meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
-        meter_map.add(out.detach().cpu(), F.one_hot(label, num_classes=len(train_loader.dataset.classes))
-                      .detach().cpu())
+        meter_map.add(out.detach().cpu(), F.one_hot(label, num_classes=utils.classes[DATA_NAME]).detach().cpu())
         meter_confuse.add(out.detach().cpu(), label.detach().cpu())
         train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 Accuracy: '
                                        '{:.2f}% mAP: {:.2f}%'.format(epoch, num_data, len(train_loader.dataset),
@@ -63,8 +62,7 @@ def test():
         loss = criterion(out, label)
         meter_loss.add(loss.item())
         meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
-        meter_map.add(out.detach().cpu(), F.one_hot(label, num_classes=len(train_loader.dataset.classes))
-                      .detach().cpu())
+        meter_map.add(out.detach().cpu(), F.one_hot(label, num_classes=utils.classes[DATA_NAME]).detach().cpu())
         meter_confuse.add(out.detach().cpu(), label.detach().cpu())
         test_progress.set_description('Test Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 Accuracy'
                                       ': {:.2f}% mAP: {:.2f}%'.format(epoch, num_data, len(test_loader.dataset),
@@ -134,7 +132,7 @@ if __name__ == '__main__':
 
     # Model
     print('==> Building model..')
-    model = Model(len(train_loader.dataset.classes), NUM_EPOCH).to(device)
+    model = Model(utils.classes[DATA_NAME], NUM_EPOCH).to(device)
     print("# parameters:", sum(param.numel() for param in model.parameters()))
     criterion = nn.CrossEntropyLoss()
     optim_configs = [{'params': model.features.parameters(), 'lr': 1e-4 * 10},
@@ -146,16 +144,16 @@ if __name__ == '__main__':
     meter_loss = tnt.meter.AverageValueMeter()
     meter_accuracy = tnt.meter.ClassErrorMeter(topk=[1, 5], accuracy=True)
     meter_map = tnt.meter.mAPMeter()
-    meter_confuse = tnt.meter.ConfusionMeter(len(train_loader.dataset.classes), normalized=True)
+    meter_confuse = tnt.meter.ConfusionMeter(utils.classes[DATA_NAME], normalized=True)
     loss_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Loss'})
     accuracy_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Accuracy'})
     map_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'mAP'})
     train_confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Train Confusion Matrix',
-                                                                        'columnnames': train_loader.dataset.classes,
-                                                                        'rownames': train_loader.dataset.classes})
+                                                                        'columnnames': range(utils.classes[DATA_NAME]),
+                                                                        'rownames': range(utils.classes[DATA_NAME])})
     test_confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Test Confusion Matrix',
-                                                                       'columnnames': test_loader.dataset.classes,
-                                                                       'rownames': test_loader.dataset.classes})
+                                                                       'columnnames': range(utils.classes[DATA_NAME]),
+                                                                       'rownames': range(utils.classes[DATA_NAME])})
     train_original_logger = VisdomLogger('image', env=DATA_NAME,
                                          opts={'title': 'Train Original Images', 'width': 372, 'height': 372})
     train_heatmaps_logger = VisdomLogger('image', env=DATA_NAME,
