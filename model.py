@@ -11,13 +11,13 @@ class Model(nn.Module):
         # backbone
         basic_model, layers = resnet18(pretrained=True), []
         for name, module in basic_model.named_children():
-            if isinstance(module, nn.Linear) or isinstance(module, nn.AdaptiveAvgPool2d) or name == 'layer4':
+            if name == 'layer3' or name == 'layer4' or name == 'avgpool' or name == 'fc':
                 continue
             layers.append(module)
         self.features = nn.Sequential(*layers)
 
         # classifier
-        self.in_length, self.out_length = 256, 32
+        self.in_length, self.out_length = 128, 32
         self.classifier = CapsuleLinear(out_capsules=num_classes, in_length=self.in_length, out_length=self.out_length,
                                         in_capsules=None, share_weight=True, num_iterations=num_iterations, bias=False,
                                         return_prob=True)
