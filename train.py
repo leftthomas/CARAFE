@@ -71,7 +71,7 @@ def vis():
     # generate vis results
     probam = utils.ProbAM(model)
     # for train image
-    train_images, _ = next(iter(train_loader))
+    train_images, train_boxes, train_labels = next(iter(train_loader))
     train_images = train_images[:16]
     train_original_logger.log(make_grid(train_images, nrow=4, padding=4).numpy())
     train_images = train_images.to(device)
@@ -79,7 +79,7 @@ def vis():
     train_heatmaps_logger.log(make_grid(train_heat_maps, nrow=4, padding=4).numpy())
     train_cams_logger.log(make_grid(train_cams, nrow=4, padding=4).numpy())
     # for test image
-    test_images, _ = next(iter(test_loader))
+    test_images, test_boxes, test_labels = next(iter(test_loader))
     test_images = test_images[:16]
     test_original_logger.log(make_grid(test_images, nrow=4, padding=4).numpy())
     test_images = test_images.to(device)

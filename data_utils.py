@@ -56,5 +56,5 @@ def collate_fn(batch):
     for sample in batch:
         images.append(sample[0])
         boxes.append(torch.tensor(sample[1][:, :4], dtype=torch.float))
-        labels.append(torch.tensor(sample[1][:, 4], dtype=torch.int))
+        labels.append(torch.tensor(sample[1][:, 4], dtype=torch.long))
     return torch.stack(images, 0), boxes, labels
