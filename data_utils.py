@@ -46,14 +46,15 @@ class VOCAnnotationTransform(object):
             bndbox.append(label_idx)
             # [[xmin, ymin, xmax, ymax, label_ind], ... ]
             res += [bndbox]
-        res = np.array(res).astype(np.float32)
+        res = np.array(res)
         return res
 
 
 def collate_fn(batch):
     """ list of tensors to a batch tensors """
-    images, targets = [], []
+    images, boxes, labels = [], [], []
     for sample in batch:
         images.append(sample[0])
-        targets.append(torch.tensor(sample[1]))
-    return torch.stack(images, 0), targets
+        boxes.append(torch.tensor(sample[1][:, :4], dtype=torch.float))
+        labels.append(torch.tensor(sample[1][:, 4], dtype=torch.int))
+    return torch.stack(images, 0), boxes, labels

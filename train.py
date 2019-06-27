@@ -2,8 +2,6 @@ import argparse
 
 import pandas as pd
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import torchnet as tnt
 from capsule_layer.optim import MultiStepRI
@@ -19,74 +17,54 @@ from model import Model
 def train():
     model.train()
     train_progress, num_data = tqdm(train_loader), 0
-    for img, label in train_progress:
-        num_data += img.size(0)
-        img, label = img.to(device), label.to(device)
+    for imgs, boxes, labels in train_progress:
+        num_data += imgs.size(0)
+        labels = utils.creat_multi_label(labels, utils.num_classes[DATA_NAME])
+        imgs, labels = imgs.to(device), labels.to(device)
         optimizer.zero_grad()
-        out, prob = model(img)
-        loss = criterion(out, label)
+        out, prob = model(imgs)
+        loss = criterion(out, labels)
         loss.backward()
         optimizer.step()
         meter_loss.add(loss.item())
-        meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
-        meter_map.add(out.detach().cpu(), F.one_hot(label, num_classes=utils.classes[DATA_NAME]).detach().cpu())
-        meter_confuse.add(out.detach().cpu(), label.detach().cpu())
-        train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 Accuracy: '
-                                       '{:.2f}% mAP: {:.2f}%'.format(epoch, num_data, len(train_loader.dataset),
-                                                                     meter_loss.value()[0], meter_accuracy
-                                                                     .value()[0], meter_accuracy.value()[1],
-                                                                     meter_map.value() * 100.0))
+        meter_map.add(out.detach().cpu(), labels.detach().cpu())
+        train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.2f} mAP: {:.2f}%'
+                                       .format(epoch, num_data, len(train_loader.dataset), meter_loss.value()[0],
+                                               meter_map.value() * 100.0))
     loss_logger.log(epoch, meter_loss.value()[0], name='train')
-    accuracy_logger.log(epoch, meter_accuracy.value()[0], name='train_top1')
-    accuracy_logger.log(epoch, meter_accuracy.value()[1], name='train_top5')
     map_logger.log(epoch, meter_map.value() * 100.0, name='train')
-    train_confuse_logger.log(meter_confuse.value())
     results['train_loss'].append(meter_loss.value()[0])
-    results['train_accuracy_1'].append(meter_accuracy.value()[0])
-    results['train_accuracy_5'].append(meter_accuracy.value()[1])
     results['train_map'].append(meter_map.value() * 100.0)
-    lr_scheduler.step()
+    lr_scheduler.step(epoch)
     meter_loss.reset()
-    meter_accuracy.reset()
     meter_map.reset()
-    meter_confuse.reset()
 
 
 def test():
     model.eval()
     test_progress, num_data = tqdm(test_loader), 0
-    for img, label in test_progress:
-        num_data += img.size(0)
-        img, label = img.to(device), label.to(device)
-        out, prob = model(img)
-        loss = criterion(out, label)
+    for imgs, boxes, labels in test_progress:
+        num_data += imgs.size(0)
+        labels = utils.creat_multi_label(labels, utils.num_classes[DATA_NAME])
+        imgs, labels = imgs.to(device), labels.to(device)
+        out, prob = model(imgs)
+        loss = criterion(out, labels)
         meter_loss.add(loss.item())
-        meter_accuracy.add(out.detach().cpu(), label.detach().cpu())
-        meter_map.add(out.detach().cpu(), F.one_hot(label, num_classes=utils.classes[DATA_NAME]).detach().cpu())
-        meter_confuse.add(out.detach().cpu(), label.detach().cpu())
-        test_progress.set_description('Test Epoch: {}---{}/{} Loss: {:.2f} Top1 Accuracy: {:.2f}% Top5 Accuracy'
-                                      ': {:.2f}% mAP: {:.2f}%'.format(epoch, num_data, len(test_loader.dataset),
-                                                                      meter_loss.value()[0], meter_accuracy
-                                                                      .value()[0], meter_accuracy.value()[1],
-                                                                      meter_map.value() * 100.0))
+        meter_map.add(out.detach().cpu(), labels.detach().cpu())
+        test_progress.set_description('Test Epoch: {}---{}/{} Loss: {:.2f} mAP: {:.2f}%'
+                                      .format(epoch, num_data, len(test_loader.dataset), meter_loss.value()[0],
+                                              meter_map.value() * 100.0))
     loss_logger.log(epoch, meter_loss.value()[0], name='test')
-    accuracy_logger.log(epoch, meter_accuracy.value()[0], name='test_top1')
-    accuracy_logger.log(epoch, meter_accuracy.value()[1], name='test_top5')
     map_logger.log(epoch, meter_map.value() * 100.0, name='test')
-    test_confuse_logger.log(meter_confuse.value())
     results['test_loss'].append(meter_loss.value()[0])
-    results['test_accuracy_1'].append(meter_accuracy.value()[0])
-    results['test_accuracy_5'].append(meter_accuracy.value()[1])
     results['test_map'].append(meter_map.value() * 100.0)
-    global best_acc
-    if meter_accuracy.value()[0] > best_acc:
-        best_acc = meter_accuracy.value()[0]
+    global best_map
+    if meter_map.value() > best_map:
+        best_map = meter_map.value()
         # save model
         torch.save(model.state_dict(), 'epochs/{}.pth'.format(DATA_NAME))
     meter_loss.reset()
-    meter_accuracy.reset()
     meter_map.reset()
-    meter_confuse.reset()
 
 
 def vis():
@@ -122,36 +100,25 @@ if __name__ == '__main__':
     DATA_NAME, BATCH_SIZE, NUM_ITERATIONS, NUM_EPOCH = opt.data_name, opt.batch_size, opt.num_iterations, opt.num_epochs
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    results = {'train_loss': [], 'test_loss': [], 'train_accuracy_1': [], 'test_accuracy_1': [], 'train_accuracy_5': [],
-               'test_accuracy_5': [], 'train_map': [], 'test_map': []}
+    results = {'train_loss': [], 'test_loss': [], 'train_map': [], 'test_map': []}
 
     print('==> Preparing data..')
     train_loader = utils.load_data(DATA_NAME, 'train', BATCH_SIZE, shuffle=True)
     test_loader = utils.load_data(DATA_NAME, 'val', BATCH_SIZE, shuffle=True)
 
     print('==> Building model..')
-    model = Model(utils.classes[DATA_NAME], NUM_EPOCH).to(device)
+    model = Model(utils.num_classes[DATA_NAME], NUM_EPOCH).to(device)
     print("# parameters:", sum(param.numel() for param in model.parameters()))
-    criterion = nn.CrossEntropyLoss()
+    criterion = utils.MarginLoss(utils.num_classes[DATA_NAME])
     optim_configs = [{'params': model.features.parameters(), 'lr': 1e-4 * 10},
                      {'params': model.classifier.parameters(), 'lr': 1e-4}]
     optimizer = optim.Adam(optim_configs, lr=1e-4)
     lr_scheduler = MultiStepLR(optimizer, milestones=[int(NUM_EPOCH * 0.5), int(NUM_EPOCH * 0.7)], gamma=0.1)
     iter_scheduler = MultiStepRI(model, milestones=[int(NUM_EPOCH * 0.7), int(NUM_EPOCH * 0.9)], verbose=True)
 
-    meter_loss = tnt.meter.AverageValueMeter()
-    meter_accuracy = tnt.meter.ClassErrorMeter(topk=[1, 5], accuracy=True)
-    meter_map = tnt.meter.mAPMeter()
-    meter_confuse = tnt.meter.ConfusionMeter(utils.classes[DATA_NAME], normalized=True)
+    meter_loss, meter_map = tnt.meter.AverageValueMeter(), tnt.meter.mAPMeter()
     loss_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Loss'})
-    accuracy_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Accuracy'})
     map_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'mAP'})
-    train_confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Train Confusion Matrix',
-                                                                        'columnnames': range(utils.classes[DATA_NAME]),
-                                                                        'rownames': range(utils.classes[DATA_NAME])})
-    test_confuse_logger = VisdomLogger('heatmap', env=DATA_NAME, opts={'title': 'Test Confusion Matrix',
-                                                                       'columnnames': range(utils.classes[DATA_NAME]),
-                                                                       'rownames': range(utils.classes[DATA_NAME])})
     train_original_logger = VisdomLogger('image', env=DATA_NAME,
                                          opts={'title': 'Train Original Images', 'width': 372, 'height': 372})
     train_heatmaps_logger = VisdomLogger('image', env=DATA_NAME,
@@ -165,7 +132,7 @@ if __name__ == '__main__':
     test_cams_logger = VisdomLogger('image', env=DATA_NAME,
                                     opts={'title': 'Test Features CAM', 'width': 372, 'height': 372})
 
-    best_acc = 0
+    best_map = 0
     for epoch in range(1, NUM_EPOCH + 1):
         train()
         with torch.no_grad():

@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from torch import nn
 from torch.utils.data.dataloader import DataLoader
 from torchvision.datasets import Cityscapes, CocoDetection, VOCDetection
 from torchvision.utils import save_image
@@ -13,7 +14,7 @@ from torchvision.utils import save_image
 from data_utils import VOCAnnotationTransform, collate_fn
 from model import Model
 
-classes = {'voc': 20, 'coco': 80, 'cityscapes': 10}
+num_classes = {'voc': 20, 'coco': 80, 'cityscapes': 10}
 
 
 def load_data(data_name, data_type, batch_size, shuffle=True):
@@ -30,8 +31,33 @@ def load_data(data_name, data_type, batch_size, shuffle=True):
     else:
         data_set = Cityscapes(root='data/{}'.format(data_name), split=data_type, transform=transform)
 
-    data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=shuffle, num_workers=16, collate_fn=collate_fn)
+    data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=shuffle, num_workers=8, collate_fn=collate_fn)
     return data_loader
+
+
+class MarginLoss(nn.Module):
+    def __init__(self, num_class, size_average=True):
+        super(MarginLoss, self).__init__()
+        self.num_class = num_class
+        self.size_average = size_average
+
+    def forward(self, output, labels):
+        left = F.relu(0.9 - output, inplace=True) ** 2
+        right = F.relu(output - 0.1, inplace=True) ** 2
+        loss = labels * left + 0.5 * (1 - labels) * right
+        loss = loss.sum(dim=-1)
+        if self.size_average:
+            return loss.mean()
+        else:
+            return loss.sum()
+
+
+def creat_multi_label(label_list, num_class):
+    labels = []
+    for label in label_list:
+        labels.append(torch.zeros(num_class).index_fill_(dim=-1, index=label, value=1))
+    labels = torch.stack(labels)
+    return labels
 
 
 class ProbAM:
@@ -83,10 +109,10 @@ if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     data_loader = load_data(DATA_NAME, 'val', BATCH_SIZE, shuffle=True)
-    images, labels = next(iter(data_loader))
+    images, boxes, labels = next(iter(data_loader))
     save_image(images, filename='results/vis_{}_original.png'.format(DATA_NAME), nrow=nrow, padding=4)
 
-    model = Model(classes[DATA_NAME], NUM_ITERATIONS)
+    model = Model(num_classes[DATA_NAME], NUM_ITERATIONS)
     model.load_state_dict(torch.load('epochs/{}.pth'.format(DATA_NAME), map_location='cpu'))
     model, images = model.to(device), images.to(device)
     probam = ProbAM(model)

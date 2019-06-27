@@ -50,7 +50,7 @@ optional arguments:
 Generated results are on `results` directory.
 
 ## Results
-The train/test loss, accuracy, confusion matrix and heatmap are showed on visdom.
+The train/test loss, mAP and heatmap are showed on visdom.
 
 - VOC
 ![result](results/voc.png)
@@ -59,4 +59,4 @@ The train/test loss, accuracy, confusion matrix and heatmap are showed on visdom
 ![result](results/coco.png)
 
 - CityScapes
-![result](results/scityscapses.png)
+![result](results/cityscapses.png)
