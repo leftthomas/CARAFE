@@ -1,3 +1,7 @@
+import numpy as np
+import torch
+
+
 class VOCAnnotationTransform(object):
     """Transforms a VOC annotation into a Tensor of bbox coords and label index
     Initialized with a dictionary lookup of class names to indexes
@@ -42,4 +46,14 @@ class VOCAnnotationTransform(object):
             bndbox.append(label_idx)
             # [[xmin, ymin, xmax, ymax, label_ind], ... ]
             res += [bndbox]
-            return res
+        res = np.array(res).astype(np.float32)
+        return res
+
+
+def collate_fn(batch):
+    """ list of tensors to a batch tensors """
+    images, targets = [], []
+    for sample in batch:
+        images.append(sample[0])
+        targets.append(torch.tensor(sample[1]))
+    return torch.stack(images, 0), targets

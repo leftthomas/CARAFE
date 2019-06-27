@@ -10,7 +10,7 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision.datasets import Cityscapes, CocoDetection, VOCDetection
 from torchvision.utils import save_image
 
-from data_utils import VOCAnnotationTransform
+from data_utils import VOCAnnotationTransform, collate_fn
 from model import Model
 
 classes = {'voc': 20, 'coco': 80, 'cityscapes': 10}
@@ -30,7 +30,7 @@ def load_data(data_name, data_type, batch_size, shuffle=True):
     else:
         data_set = Cityscapes(root='data/{}'.format(data_name), split=data_type, transform=transform)
 
-    data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=shuffle, num_workers=16)
+    data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=shuffle, num_workers=16, collate_fn=collate_fn)
     return data_loader
 
 
