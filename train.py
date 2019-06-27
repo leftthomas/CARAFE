@@ -125,12 +125,10 @@ if __name__ == '__main__':
     results = {'train_loss': [], 'test_loss': [], 'train_accuracy_1': [], 'test_accuracy_1': [], 'train_accuracy_5': [],
                'test_accuracy_5': [], 'train_map': [], 'test_map': []}
 
-    # Data
     print('==> Preparing data..')
     train_loader = utils.load_data(DATA_NAME, 'train', BATCH_SIZE, shuffle=True)
     test_loader = utils.load_data(DATA_NAME, 'val', BATCH_SIZE, shuffle=True)
 
-    # Model
     print('==> Building model..')
     model = Model(utils.classes[DATA_NAME], NUM_EPOCH).to(device)
     print("# parameters:", sum(param.numel() for param in model.parameters()))
@@ -169,9 +167,7 @@ if __name__ == '__main__':
 
     best_acc = 0
     for epoch in range(1, NUM_EPOCH + 1):
-        # train loop
         train()
-        # test loop
         with torch.no_grad():
             test()
             vis()

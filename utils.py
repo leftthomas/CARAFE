@@ -7,9 +7,10 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torch.utils.data.dataloader import DataLoader
-from torchvision.datasets import ImageFolder, CocoDetection, VOCDetection
+from torchvision.datasets import Cityscapes, CocoDetection, VOCDetection
 from torchvision.utils import save_image
 
+from data_utils import VOCAnnotationTransform
 from model import Model
 
 classes = {'voc': 20, 'coco': 80, 'cityscapes': 10}
@@ -22,12 +23,12 @@ def load_data(data_name, data_type, batch_size, shuffle=True):
         transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
     if data_name == 'voc':
         data_set = VOCDetection(root='data/{}'.format(data_name), image_set=data_type, download=True,
-                                transform=transform)
+                                transform=transform, target_transform=VOCAnnotationTransform())
     elif data_name == 'coco':
         data_set = CocoDetection(root='data/{}/{}'.format(data_name, data_type), annFile='data/{}/instances_{}.json'
                                  .format(data_name, data_type, data_type), transform=transform)
     else:
-        data_set = ImageFolder(root='data/{}/{}'.format(data_name, data_type), transform=transform)
+        data_set = Cityscapes(root='data/{}'.format(data_name), split=data_type, transform=transform)
 
     data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=shuffle, num_workers=16)
     return data_loader
