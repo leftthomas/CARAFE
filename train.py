@@ -107,7 +107,7 @@ if __name__ == '__main__':
     test_loader = utils.load_data(DATA_NAME, 'val', BATCH_SIZE, shuffle=True)
 
     print('==> Building model..')
-    model = Model(utils.num_classes[DATA_NAME], NUM_EPOCH).to(device)
+    model = Model(utils.num_classes[DATA_NAME], NUM_ITERATIONS).to(device)
     print("# trainable parameters:", sum(param.numel() if param.requires_grad else 0 for param in model.parameters()))
     criterion = utils.MarginLoss()
     optim_configs = [{'params': model.features.parameters(), 'lr': 1e-4 * 10},

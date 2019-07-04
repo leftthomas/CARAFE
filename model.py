@@ -1,6 +1,6 @@
 import torch.nn as nn
 from capsule_layer import CapsuleLinear
-from torchvision.models.resnet import resnet18
+from torchvision.models.resnet import resnet34
 
 
 class Model(nn.Module):
@@ -9,15 +9,15 @@ class Model(nn.Module):
         super(Model, self).__init__()
 
         # backbone
-        basic_model, layers = resnet18(pretrained=True), []
+        basic_model, layers = resnet34(pretrained=True), []
         for name, module in basic_model.named_children():
-            if name == 'avgpool' or name == 'fc':
+            if name == 'layer4' or name == 'avgpool' or name == 'fc':
                 continue
             layers.append(module)
         self.features = nn.Sequential(*layers)
 
         # classifier
-        self.in_length, self.out_length = 512, 32
+        self.in_length, self.out_length = 256, 32
         self.classifier = CapsuleLinear(out_capsules=num_classes, in_length=self.in_length, out_length=self.out_length,
                                         in_capsules=None, share_weight=True, num_iterations=num_iterations, bias=False,
                                         return_prob=True)
