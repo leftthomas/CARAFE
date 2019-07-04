@@ -108,8 +108,8 @@ if __name__ == '__main__':
 
     print('==> Building model..')
     model = Model(utils.num_classes[DATA_NAME], NUM_EPOCH).to(device)
-    print("# parameters:", sum(param.numel() for param in model.parameters()))
-    criterion = utils.MarginLoss(utils.num_classes[DATA_NAME])
+    print("# trainable parameters:", sum(param.numel() if param.requires_grad else 0 for param in model.parameters()))
+    criterion = utils.MarginLoss()
     optim_configs = [{'params': model.features.parameters(), 'lr': 1e-4 * 10},
                      {'params': model.classifier.parameters(), 'lr': 1e-4}]
     optimizer = optim.Adam(optim_configs, lr=1e-4)

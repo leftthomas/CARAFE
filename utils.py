@@ -36,9 +36,8 @@ def load_data(data_name, data_type, batch_size, shuffle=True):
 
 
 class MarginLoss(nn.Module):
-    def __init__(self, num_class, size_average=True):
+    def __init__(self, size_average=True):
         super(MarginLoss, self).__init__()
-        self.num_class = num_class
         self.size_average = size_average
 
     def forward(self, output, labels):
