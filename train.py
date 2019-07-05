@@ -117,20 +117,20 @@ if __name__ == '__main__':
     iter_scheduler = MultiStepRI(model, milestones=[int(NUM_EPOCH * 0.7), int(NUM_EPOCH * 0.9)], verbose=True)
 
     meter_loss, meter_map = tnt.meter.AverageValueMeter(), tnt.meter.mAPMeter()
-    loss_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Loss'})
-    map_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'mAP'})
+    loss_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Loss', 'width': 350, 'height': 350})
+    map_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'mAP', 'width': 350, 'height': 350})
     train_original_logger = VisdomLogger('image', env=DATA_NAME,
-                                         opts={'title': 'Train Original Images', 'width': 372, 'height': 372})
+                                         opts={'title': 'Train Original Images', 'width': 350, 'height': 350})
     train_heatmaps_logger = VisdomLogger('image', env=DATA_NAME,
-                                         opts={'title': 'Train Features Heatmap', 'width': 372, 'height': 372})
+                                         opts={'title': 'Train Features Heatmap', 'width': 350, 'height': 350})
     train_cams_logger = VisdomLogger('image', env=DATA_NAME,
-                                     opts={'title': 'Train Features CAM', 'width': 372, 'height': 372})
+                                     opts={'title': 'Train Features CAM', 'width': 350, 'height': 350})
     test_original_logger = VisdomLogger('image', env=DATA_NAME,
-                                        opts={'title': 'Test Original Images', 'width': 372, 'height': 372})
+                                        opts={'title': 'Test Original Images', 'width': 350, 'height': 350})
     test_heatmaps_logger = VisdomLogger('image', env=DATA_NAME,
-                                        opts={'title': 'Test Features Heatmap', 'width': 372, 'height': 372})
+                                        opts={'title': 'Test Features Heatmap', 'width': 350, 'height': 350})
     test_cams_logger = VisdomLogger('image', env=DATA_NAME,
-                                    opts={'title': 'Test Features CAM', 'width': 372, 'height': 372})
+                                    opts={'title': 'Test Features CAM', 'width': 350, 'height': 350})
 
     best_map = 0
     for epoch in range(1, NUM_EPOCH + 1):

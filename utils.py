@@ -20,10 +20,10 @@ num_classes = {'voc': 20, 'coco': 80, 'cityscapes': 30}
 def load_data(data_name, data_type, batch_size, shuffle=True):
     if data_type == 'train':
         transform = transforms.Compose(
-            [transforms.Resize(256), transforms.RandomCrop(224), transforms.RandomHorizontalFlip(),
+            [transforms.Resize(224), transforms.RandomCrop(224), transforms.RandomHorizontalFlip(),
              transforms.ColorJitter(0.15, 0.5, 0.5, 0.05), transforms.ToTensor()])
     else:
-        transform = transforms.Compose([transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor()])
+        transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
     if data_name == 'voc':
         data_set = VOCDetection(root='data/{}'.format(data_name), image_set=data_type, download=True,
                                 transform=transform, target_transform=VOCAnnotationTransform())
