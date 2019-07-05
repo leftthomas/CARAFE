@@ -11,7 +11,7 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision.datasets import Cityscapes, CocoDetection, VOCDetection
 from torchvision.utils import save_image
 
-from data_utils import VOCAnnotationTransform, collate_fn
+from data_utils import VOCAnnotationTransform, COCOAnnotationTransform, collate_fn
 from model import Model
 
 num_classes = {'voc': 20, 'coco': 80, 'cityscapes': 30}
@@ -29,7 +29,9 @@ def load_data(data_name, data_type, batch_size, shuffle=True):
                                 transform=transform, target_transform=VOCAnnotationTransform())
     elif data_name == 'coco':
         data_set = CocoDetection(root='data/{}/{}'.format(data_name, data_type), annFile='data/{}/instances_{}.json'
-                                 .format(data_name, data_type), transform=transform)
+                                 .format(data_name, data_type), transform=transform,
+                                 target_transform=COCOAnnotationTransform(
+                                     annFile='data/{}/instances_{}.json'.format(data_name, data_type)))
     else:
         data_set = Cityscapes(root='data/{}'.format(data_name), split=data_type, transform=transform)
 
