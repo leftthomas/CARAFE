@@ -76,6 +76,9 @@ class COCOAnnotationTransform(object):
             a list containing lists of bounding boxes  [bbox coords, class idx]
         """
         res = []
+
+        if len(target) == 0:
+            return np.array(res)
         image = self.coco.loadImgs(target[0]['image_id'])[0]
         height, width = image['height'], image['width']
         for obj in target:
@@ -103,6 +106,10 @@ def collate_fn(batch):
     images, boxes, labels = [], [], []
     for sample in batch:
         images.append(sample[0])
-        boxes.append(torch.tensor(sample[1][:, :4], dtype=torch.float))
-        labels.append(torch.tensor(sample[1][:, 4], dtype=torch.long))
+        if len(sample[1]) != 0:
+            boxes.append(torch.tensor(sample[1][:, :4], dtype=torch.float))
+            labels.append(torch.tensor(sample[1][:, 4], dtype=torch.long))
+        else:
+            boxes.append(torch.tensor([], dtype=torch.float))
+            labels.append(torch.tensor([], dtype=torch.long))
     return torch.stack(images, 0), boxes, labels

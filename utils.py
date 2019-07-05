@@ -58,7 +58,10 @@ class MarginLoss(nn.Module):
 def creat_multi_label(label_list, num_class):
     labels = []
     for label in label_list:
-        labels.append(torch.zeros(num_class).index_fill_(dim=-1, index=label, value=1))
+        if len(label) > 0:
+            labels.append(torch.zeros(num_class).index_fill_(dim=-1, index=label, value=1))
+        else:
+            labels.append(torch.zeros(num_class))
     labels = torch.stack(labels)
     return labels
 
