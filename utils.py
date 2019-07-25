@@ -8,13 +8,13 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torch import nn
 from torch.utils.data.dataloader import DataLoader
-from torchvision.datasets import Cityscapes, CocoDetection, VOCDetection
 from torchvision.utils import save_image
 
-from data_utils import VOCAnnotationTransform, COCOAnnotationTransform, collate_fn
+from data_utils import collate_fn
+from dataset import VOCAnnotationTransform, COCOAnnotationTransform, VOCDetection
 from model import Model
 
-num_classes = {'voc': 20, 'coco': 80, 'cityscapes': 30}
+num_classes = {'voc': 20, 'coco': 80}
 
 
 def load_data(data_name, data_type, batch_size, shuffle=True):
@@ -25,16 +25,13 @@ def load_data(data_name, data_type, batch_size, shuffle=True):
     else:
         transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
     if data_name == 'voc':
-        data_set = VOCDetection(root='data/{}'.format(data_name), image_set=data_type, download=True,
+        data_set = VOCDetection(root='data/{}'.format(data_name), image_set=data_type,
                                 transform=transform, target_transform=VOCAnnotationTransform())
-    elif data_name == 'coco':
+    else:
         data_set = CocoDetection(root='data/{}/{}'.format(data_name, data_type), annFile='data/{}/instances_{}.json'
                                  .format(data_name, data_type), transform=transform,
                                  target_transform=COCOAnnotationTransform(
                                      annFile='data/{}/instances_{}.json'.format(data_name, data_type)))
-    else:
-        data_set = Cityscapes(root='data/{}'.format(data_name), split=data_type, transform=transform)
-
     data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=shuffle, num_workers=8, collate_fn=collate_fn)
     return data_loader
 
@@ -104,7 +101,7 @@ class ProbAM:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Visualize Capsule Network Focused Parts')
-    parser.add_argument('--data_name', default='voc', type=str, choices=['voc', 'coco', 'cityscapes'],
+    parser.add_argument('--data_name', default='voc', type=str, choices=['voc', 'coco'],
                         help='dataset name')
     parser.add_argument('--batch_size', default=64, type=int, help='vis batch size')
     parser.add_argument('--num_iterations', default=3, type=int, help='routing iterations number')

@@ -90,7 +90,7 @@ def vis():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Image Detection Model')
-    parser.add_argument('--data_name', default='voc', type=str, choices=['voc', 'coco', 'cityscapes'],
+    parser.add_argument('--data_name', default='voc', type=str, choices=['voc', 'coco'],
                         help='dataset name')
     parser.add_argument('--batch_size', default=64, type=int, help='training batch size')
     parser.add_argument('--num_iterations', default=3, type=int, help='routing iterations number')
