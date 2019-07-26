@@ -4,7 +4,6 @@ import xml.etree.ElementTree as ET
 
 import cv2
 import numpy as np
-import torch
 import torch.utils.data as data
 from pycocotools.coco import COCO
 
@@ -72,14 +71,7 @@ class VOCDetection(data.Dataset):
             self.targets.append('{}/Annotations/{}.xml'.format(self.root, line.strip()))
 
     def __getitem__(self, index):
-        im, gt, h, w = self.pull_item(index)
-        return im, gt
-
-    def __len__(self):
-        return len(self.images)
-
-    def pull_item(self, index):
-        img = cv2.imread(self.images[index])
+        img = cv2.imread(self.images[index], cv2.IMREAD_COLOR)
         target = ET.parse(self.targets[index]).getroot()
         height, width, channels = img.shape
 
@@ -88,23 +80,11 @@ class VOCDetection(data.Dataset):
 
         if self.transform is not None:
             img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
-            # to rgb
-            img = img[:, :, (2, 1, 0)]
             target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
-        return torch.from_numpy(img).permute(2, 0, 1).contiguous(), target, height, width
+        return img, target
 
-    def pull_image(self, index):
-        img_id = self.images[index]
-        return cv2.imread(self.img_path % img_id, cv2.IMREAD_COLOR)
-
-    def pull_anno(self, index):
-        img_id = self.images[index]
-        anno = ET.parse(self.anno_path % img_id).getroot()
-        gt = self.target_transform(anno, 1, 1)
-        return img_id[1], gt
-
-    def pull_tensor(self, index):
-        return torch.tensor(self.pull_image(index)).unsqueeze_(0)
+    def __len__(self):
+        return len(self.images)
 
 
 class COCOAnnotationTransform(object):

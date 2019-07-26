@@ -17,8 +17,8 @@ num_classes = {'voc': 20, 'coco': 80}
 
 
 def load_data(data_name, data_type, batch_size, shuffle=True):
-    transform = TrainTransform(size=300, mean=(104, 117, 123)) if data_type == 'train' else \
-        TestTransform(size=300, mean=(104, 117, 123))
+    transform = TrainTransform(size=300, mean=(0.4078, 0.4588, 0.4824)) if data_type == 'train' else \
+        TestTransform(size=300, mean=(0.4078, 0.4588, 0.4824))
     if data_name == 'voc':
         data_set = VOCDetection(root='data/{}'.format(data_name), image_set=data_type, transform=transform,
                                 target_transform=VOCAnnotationTransform())
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     data_loader = load_data(DATA_NAME, 'val', BATCH_SIZE, shuffle=True)
-    images, boxes, labels = next(iter(data_loader))
+    images, targets = next(iter(data_loader))
     save_image(images, filename='results/vis_{}_original.png'.format(DATA_NAME), nrow=nrow, padding=4)
 
     model = Model(num_classes[DATA_NAME], NUM_ITERATIONS)

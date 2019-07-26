@@ -54,7 +54,6 @@ class SubtractMeans(object):
         self.mean = np.array(mean, dtype=np.float32)
 
     def __call__(self, image, boxes=None, labels=None):
-        image = image.astype(np.float32)
         image -= self.mean
         return image, boxes, labels
 
@@ -117,17 +116,6 @@ class RandomHue(object):
         return image, boxes, labels
 
 
-class RandomLightingNoise(object):
-    def __init__(self):
-        self.perms = ((0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0))
-
-    def __call__(self, image, boxes=None, labels=None):
-        if random.randint(2):
-            swap = self.perms[random.randint(len(self.perms))]
-            image = image[:, :, swap]
-        return image, boxes, labels
-
-
 class ConvertColor(object):
     def __init__(self, current='BGR', transform='HSV'):
         self.transform = transform
@@ -167,16 +155,6 @@ class RandomBrightness(object):
             delta = random.uniform(-self.delta, self.delta)
             image += delta
         return image, boxes, labels
-
-
-class ToCV2Image(object):
-    def __call__(self, tensor, boxes=None, labels=None):
-        return tensor.cpu().numpy().astype(np.float32).transpose((1, 2, 0)), boxes, labels
-
-
-class ToTensor(object):
-    def __call__(self, image, boxes=None, labels=None):
-        return torch.from_numpy(image.astype(np.float32)).permute(2, 0, 1).contiguous(), boxes, labels
 
 
 class RandomSampleCrop(object):
@@ -252,7 +230,7 @@ class RandomSampleCrop(object):
                     continue
 
                 # take only matching gt boxes
-                current_boxes = boxes[mask, :].copy()
+                current_boxes = boxes[mask, :]
 
                 # take only matching gt labels
                 current_labels = labels[mask]
@@ -287,7 +265,6 @@ class Expand(object):
         expand_image[int(top):int(top + height), int(left):int(left + width)] = image
         image = expand_image
 
-        boxes = boxes.copy()
         boxes[:, :2] += (int(left), int(top))
         boxes[:, 2:] += (int(left), int(top))
 
@@ -299,7 +276,6 @@ class RandomMirror(object):
         height, width, channels = image.shape
         if random.randint(2):
             image = image[:, ::-1]
-            boxes = boxes.copy()
             boxes[:, 0::2] = width - boxes[:, 2::-2]
         return image, boxes, labels
 
@@ -309,25 +285,40 @@ class PhotometricDistort(object):
         self.pd = [RandomContrast(), ConvertColor(transform='HSV'), RandomSaturation(), RandomHue(),
                    ConvertColor(current='HSV', transform='BGR'), RandomContrast()]
         self.rand_brightness = RandomBrightness()
-        self.rand_light_noise = RandomLightingNoise()
 
     def __call__(self, image, boxes=None, labels=None):
-        im = image.copy()
-        im, boxes, labels = self.rand_brightness(im, boxes, labels)
+        image, boxes, labels = self.rand_brightness(image, boxes, labels)
         if random.randint(2):
             distort = Compose(self.pd[:-1])
         else:
             distort = Compose(self.pd[1:])
-        im, boxes, labels = distort(im, boxes, labels)
-        return self.rand_light_noise(im, boxes, labels)
+        image, boxes, labels = distort(image, boxes, labels)
+        return image, boxes, labels
+
+
+class ToCV2Image(object):
+    def __call__(self, tensor, boxes=None, labels=None):
+        image = tensor.cpu().numpy().transpose((1, 2, 0))
+        image = image[:, :, (2, 1, 0)]
+        return image, boxes, labels
+
+
+class ToTensor(object):
+    def __call__(self, image, boxes=None, labels=None):
+        image = image[:, :, (2, 1, 0)]
+        image = image - np.min(image)
+        if np.max(image) != 0:
+            image = image / np.max(image)
+        image = torch.from_numpy(image).permute(2, 0, 1).contiguous()
+        return image, boxes, labels
 
 
 class TrainTransform(object):
-    def __init__(self, size=300, mean=(104, 117, 123)):
+    def __init__(self, size=300, mean=(0.4078, 0.4588, 0.4824)):
         self.mean = mean
         self.size = size
         self.augment = Compose([ConvertFromInts(), ToAbsoluteCoords(), PhotometricDistort(), Expand(self.mean),
-                                RandomSampleCrop(), RandomMirror(), ToPercentCoords(), Resize(self.size),
+                                RandomSampleCrop(), RandomMirror(), ToPercentCoords(), Resize(self.size), ToTensor(),
                                 SubtractMeans(self.mean)])
 
     def __call__(self, image, boxes=None, labels=None):
@@ -335,10 +326,10 @@ class TrainTransform(object):
 
 
 class TestTransform:
-    def __init__(self, size=300, mean=(104, 117, 123)):
+    def __init__(self, size=300, mean=(0.4078, 0.4588, 0.4824)):
         self.mean = mean
         self.size = size
-        self.augment = Compose([ConvertFromInts(), Resize(self.size), SubtractMeans(self.mean)])
+        self.augment = Compose([ConvertFromInts(), Resize(self.size), ToTensor(), SubtractMeans(self.mean)])
 
     def __call__(self, image, boxes=None, labels=None):
         return self.augment(image, boxes, labels)
