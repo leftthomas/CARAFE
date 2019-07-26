@@ -5,12 +5,11 @@ import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
-import torchvision.transforms as transforms
 from torch import nn
 from torch.utils.data.dataloader import DataLoader
 from torchvision.utils import save_image
 
-from data_utils import collate_fn
+from data_utils import collate_fn, TestTransform, TrainTransform
 from dataset import VOCAnnotationTransform, COCOAnnotationTransform, VOCDetection
 from model import Model
 
@@ -18,15 +17,11 @@ num_classes = {'voc': 20, 'coco': 80}
 
 
 def load_data(data_name, data_type, batch_size, shuffle=True):
-    if data_type == 'train':
-        transform = transforms.Compose(
-            [transforms.Resize(224), transforms.RandomCrop(224), transforms.RandomHorizontalFlip(),
-             transforms.ColorJitter(0.15, 0.5, 0.5, 0.05), transforms.ToTensor()])
-    else:
-        transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
+    transform = TrainTransform(size=300, mean=(104, 117, 123)) if data_type == 'train' else \
+        TestTransform(size=300, mean=(104, 117, 123))
     if data_name == 'voc':
-        data_set = VOCDetection(root='data/{}'.format(data_name), image_set=data_type,
-                                transform=transform, target_transform=VOCAnnotationTransform())
+        data_set = VOCDetection(root='data/{}'.format(data_name), image_set=data_type, transform=transform,
+                                target_transform=VOCAnnotationTransform())
     else:
         data_set = CocoDetection(root='data/{}/{}'.format(data_name, data_type), annFile='data/{}/instances_{}.json'
                                  .format(data_name, data_type), transform=transform,
@@ -101,8 +96,7 @@ class ProbAM:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Visualize Capsule Network Focused Parts')
-    parser.add_argument('--data_name', default='voc', type=str, choices=['voc', 'coco'],
-                        help='dataset name')
+    parser.add_argument('--data_name', default='voc', type=str, choices=['voc', 'coco'], help='dataset name')
     parser.add_argument('--batch_size', default=64, type=int, help='vis batch size')
     parser.add_argument('--num_iterations', default=3, type=int, help='routing iterations number')
 

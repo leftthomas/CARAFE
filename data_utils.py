@@ -1,5 +1,3 @@
-import types
-
 import cv2
 import numpy as np
 import torch
@@ -44,15 +42,6 @@ class Compose(object):
         for t in self.transforms:
             image, boxes, labels = t(image, boxes, labels)
         return image, boxes, labels
-
-
-class Lambda(object):
-    def __init__(self, lambd):
-        assert isinstance(lambd, types.LambdaType)
-        self.lambd = lambd
-
-    def __call__(self, image, boxes=None, labels=None):
-        return self.lambd(image, boxes, labels)
 
 
 class ConvertFromInts(object):
@@ -128,15 +117,6 @@ class RandomHue(object):
         return image, boxes, labels
 
 
-class SwapChannels(object):
-    def __init__(self, swaps):
-        self.swaps = swaps
-
-    def __call__(self, image):
-        image = image[:, :, self.swaps]
-        return image
-
-
 class RandomLightingNoise(object):
     def __init__(self):
         self.perms = ((0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0))
@@ -144,8 +124,7 @@ class RandomLightingNoise(object):
     def __call__(self, image, boxes=None, labels=None):
         if random.randint(2):
             swap = self.perms[random.randint(len(self.perms))]
-            shuffle = SwapChannels(swap)
-            image = shuffle(image)
+            image = image[:, :, swap]
         return image, boxes, labels
 
 
@@ -294,7 +273,7 @@ class Expand(object):
     def __init__(self, mean):
         self.mean = mean
 
-    def __call__(self, image, boxes, labels):
+    def __call__(self, image, boxes=None, labels=None):
         if random.randint(2):
             return image, boxes, labels
 
@@ -316,7 +295,7 @@ class Expand(object):
 
 
 class RandomMirror(object):
-    def __call__(self, image, boxes, labels):
+    def __call__(self, image, boxes=None, labels=None):
         height, width, channels = image.shape
         if random.randint(2):
             image = image[:, ::-1]
@@ -332,7 +311,7 @@ class PhotometricDistort(object):
         self.rand_brightness = RandomBrightness()
         self.rand_light_noise = RandomLightingNoise()
 
-    def __call__(self, image, boxes, labels):
+    def __call__(self, image, boxes=None, labels=None):
         im = image.copy()
         im, boxes, labels = self.rand_brightness(im, boxes, labels)
         if random.randint(2):
@@ -343,39 +322,26 @@ class PhotometricDistort(object):
         return self.rand_light_noise(im, boxes, labels)
 
 
-class SSDAugmentation(object):
+class TrainTransform(object):
     def __init__(self, size=300, mean=(104, 117, 123)):
         self.mean = mean
         self.size = size
-        self.augment = Compose([
-            ConvertFromInts(),
-            ToAbsoluteCoords(),
-            PhotometricDistort(),
-            Expand(self.mean),
-            RandomSampleCrop(),
-            RandomMirror(),
-            ToPercentCoords(),
-            Resize(self.size),
-            SubtractMeans(self.mean)
-        ])
-
-    def __call__(self, img, boxes, labels):
-        return self.augment(img, boxes, labels)
-
-
-def base_transform(image, size, mean):
-    x = cv2.resize(image, (size, size)).astype(np.float32)
-    x -= mean
-    return x
-
-
-class BaseTransform:
-    def __init__(self, size, mean):
-        self.size = size
-        self.mean = np.array(mean, dtype=np.float32)
+        self.augment = Compose([ConvertFromInts(), ToAbsoluteCoords(), PhotometricDistort(), Expand(self.mean),
+                                RandomSampleCrop(), RandomMirror(), ToPercentCoords(), Resize(self.size),
+                                SubtractMeans(self.mean)])
 
     def __call__(self, image, boxes=None, labels=None):
-        return base_transform(image, self.size, self.mean), boxes, labels
+        return self.augment(image, boxes, labels)
+
+
+class TestTransform:
+    def __init__(self, size=300, mean=(104, 117, 123)):
+        self.mean = mean
+        self.size = size
+        self.augment = Compose([ConvertFromInts(), Resize(self.size), SubtractMeans(self.mean)])
+
+    def __call__(self, image, boxes=None, labels=None):
+        return self.augment(image, boxes, labels)
 
 
 def collate_fn(batch):
