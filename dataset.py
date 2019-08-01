@@ -56,7 +56,7 @@ class VOCDetection(data.Dataset):
 
     Arguments:
         root (string): filepath to VOCdevkit folder.
-        image_set (string): image set to use (eg. 'train', 'val', 'test')
+        image_set (string): image set to use (eg. 'train', 'val')
         transform (callable, optional): transformation to perform on the input image
         target_transform (callable, optional): transformation to perform on the target `annotation`
     """
@@ -90,31 +90,25 @@ class VOCDetection(data.Dataset):
 class COCOAnnotationTransform(object):
     """Transforms a COCO annotation into a Tensor of bbox coords and label index
     Initialized with a dictionary lookup of class names to indexes
-    Arguments:
-        annFile (string): Path to json annotation file
     """
 
-    def __init__(self, annFile):
+    def __init__(self):
         self.class_to_ind = {}
         labels = open(os.path.join('data', 'coco_labels.txt'), 'r')
         for line in labels:
             ids = line.split(',')
             self.class_to_ind[int(ids[0])] = int(ids[1])
-        self.coco = COCO(annFile)
 
-    def __call__(self, target):
+    def __call__(self, target, height, width):
         """
-        Args:
-            target (dict): COCO target json annotation as a python dict
+        Arguments:
+            target (annotation) : COCO target json annotation as a python dict
+            height (int): height
+            width (int): width
         Returns:
-            a list containing lists of bounding boxes  [bbox coords, class idx]
+            a numpy array containing lists of bounding boxes  [[bbox coords, class idx], ... ]
         """
         res = []
-
-        if len(target) == 0:
-            return np.array(res)
-        image = self.coco.loadImgs(target[0]['image_id'])[0]
-        height, width = image['height'], image['width']
         for obj in target:
             bbox = obj['bbox']
             bbox[2] += bbox[0]
@@ -131,5 +125,44 @@ class COCOAnnotationTransform(object):
             bndbox.append(label_idx)
             # [[xmin, ymin, xmax, ymax, label_ind], ... ]
             res += [bndbox]
-        res = np.array(res)
+        res = np.array(res, dtype=np.float32)
         return res
+
+
+class COCODetection(data.Dataset):
+    """MS COCO Detection Dataset Object
+    input is image, target is annotation
+
+    Arguments:
+        root (string): filepath to annotations folder.
+        image_set (string): image set to use (eg. 'train', 'val')
+        transform (callable, optional): transformation to perform on the input image
+        target_transform (callable, optional): transformation to perform on the target `annotation`
+    """
+
+    def __init__(self, root, image_set='train', transform=None, target_transform=None):
+        self.root = root
+        self.image_set = image_set
+        self.transform = transform
+        self.target_transform = target_transform
+        self.coco = COCO(osp.join(self.root, 'annotations', 'instances_{}2017.json'.format(image_set)))
+        self.image_ids = list(self.coco.imgToAnns.keys())
+
+    def __getitem__(self, index):
+        img_id = self.image_ids[index]
+        img_path = osp.join(self.root, '{}2017'.format(self.image_set), self.coco.loadImgs(img_id)[0]['file_name'])
+        img = cv2.imread(img_path)
+        ann_ids = self.coco.getAnnIds(imgIds=img_id)
+        target = self.coco.loadAnns(ann_ids)
+        height, width, channels = img.shape
+
+        if self.target_transform is not None:
+            target = self.target_transform(target, height, width)
+
+        if self.transform is not None:
+            img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
+            target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
+        return img, target
+
+    def __len__(self):
+        return len(self.image_ids)

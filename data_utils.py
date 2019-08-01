@@ -314,7 +314,7 @@ class SubtractMeans(object):
 
 
 class TrainTransform(object):
-    def __init__(self, size=300, mean=(0.4078, 0.4588, 0.4824)):
+    def __init__(self, size, mean):
         self.mean = mean
         self.size = size
         self.augment = Compose([ConvertFromInts(), ToAbsoluteCoords(), PhotometricDistort(), Expand(self.mean),
@@ -325,8 +325,8 @@ class TrainTransform(object):
         return self.augment(image, boxes, labels)
 
 
-class TestTransform:
-    def __init__(self, size=300, mean=(0.4078, 0.4588, 0.4824)):
+class ValTransform:
+    def __init__(self, size, mean):
         self.mean = mean
         self.size = size
         self.augment = Compose([ConvertFromInts(), Resize(self.size), ToTensor(), SubtractMeans(self.mean)])

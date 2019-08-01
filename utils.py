@@ -9,8 +9,8 @@ from torch import nn
 from torch.utils.data.dataloader import DataLoader
 from torchvision.utils import save_image
 
-from data_utils import collate_fn, TestTransform, TrainTransform
-from dataset import VOCAnnotationTransform, COCOAnnotationTransform, VOCDetection
+from data_utils import collate_fn, ValTransform, TrainTransform
+from dataset import VOCAnnotationTransform, COCOAnnotationTransform, VOCDetection, COCODetection
 from model import Model
 
 num_classes = {'voc': 20, 'coco': 80}
@@ -18,15 +18,13 @@ num_classes = {'voc': 20, 'coco': 80}
 
 def load_data(data_name, data_type, batch_size, shuffle=True):
     transform = TrainTransform(size=300, mean=(0.4078, 0.4588, 0.4824)) if data_type == 'train' else \
-        TestTransform(size=300, mean=(0.4078, 0.4588, 0.4824))
+        ValTransform(size=300, mean=(0.4078, 0.4588, 0.4824))
     if data_name == 'voc':
         data_set = VOCDetection(root='data/{}'.format(data_name), image_set=data_type, transform=transform,
                                 target_transform=VOCAnnotationTransform())
     else:
-        data_set = CocoDetection(root='data/{}/{}'.format(data_name, data_type), annFile='data/{}/instances_{}.json'
-                                 .format(data_name, data_type), transform=transform,
-                                 target_transform=COCOAnnotationTransform(
-                                     annFile='data/{}/instances_{}.json'.format(data_name, data_type)))
+        data_set = COCODetection(root='data/{}'.format(data_name), image_set=data_type, transform=transform,
+                                 target_transform=COCOAnnotationTransform())
     data_loader = DataLoader(data_set, batch_size=batch_size, shuffle=shuffle, num_workers=8, collate_fn=collate_fn)
     return data_loader
 
