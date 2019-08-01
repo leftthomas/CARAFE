@@ -40,9 +40,9 @@ def train():
     meter_map.reset()
 
 
-def test():
+def val():
     model.eval()
-    test_progress, num_data = tqdm(test_loader), 0
+    test_progress, num_data = tqdm(val_loader), 0
     for imgs, boxes, labels in test_progress:
         num_data += imgs.size(0)
         labels = utils.creat_multi_label(labels, utils.num_classes[DATA_NAME])
@@ -52,7 +52,7 @@ def test():
         meter_loss.add(loss.item())
         meter_map.add(out.detach().cpu(), labels.detach().cpu())
         test_progress.set_description('Test Epoch: {}---{}/{} Loss: {:.2f} mAP: {:.2f}%'
-                                      .format(epoch, num_data, len(test_loader.dataset), meter_loss.value()[0],
+                                      .format(epoch, num_data, len(val_loader.dataset), meter_loss.value()[0],
                                               meter_map.value() * 100.0))
     loss_logger.log(epoch, meter_loss.value()[0], name='test')
     map_logger.log(epoch, meter_map.value() * 100.0, name='test')
@@ -79,19 +79,18 @@ def vis():
     train_heatmaps_logger.log(make_grid(train_heat_maps, nrow=4, padding=4).numpy())
     train_cams_logger.log(make_grid(train_cams, nrow=4, padding=4).numpy())
     # for test image
-    test_images, test_boxes, test_labels = next(iter(test_loader))
+    test_images, test_boxes, test_labels = next(iter(val_loader))
     test_images = test_images[:16]
-    test_original_logger.log(make_grid(test_images, nrow=4, padding=4).numpy())
+    val_original_logger.log(make_grid(test_images, nrow=4, padding=4).numpy())
     test_images = test_images.to(device)
     test_heat_maps, test_cams = probam(test_images)
-    test_heatmaps_logger.log(make_grid(test_heat_maps, nrow=4, padding=4).numpy())
-    test_cams_logger.log(make_grid(test_cams, nrow=4, padding=4).numpy())
+    val_heatmaps_logger.log(make_grid(test_heat_maps, nrow=4, padding=4).numpy())
+    val_cams_logger.log(make_grid(test_cams, nrow=4, padding=4).numpy())
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Image Detection Model')
-    parser.add_argument('--data_name', default='voc', type=str, choices=['voc', 'coco'],
-                        help='dataset name')
+    parser.add_argument('--data_name', default='voc', type=str, choices=['voc', 'coco'], help='dataset name')
     parser.add_argument('--batch_size', default=64, type=int, help='training batch size')
     parser.add_argument('--num_iterations', default=3, type=int, help='routing iterations number')
     parser.add_argument('--num_epochs', default=100, type=int, help='train epoch number')
@@ -100,11 +99,11 @@ if __name__ == '__main__':
     DATA_NAME, BATCH_SIZE, NUM_ITERATIONS, NUM_EPOCH = opt.data_name, opt.batch_size, opt.num_iterations, opt.num_epochs
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    results = {'train_loss': [], 'test_loss': [], 'train_map': [], 'test_map': []}
+    results = {'train_loss': [], 'val_loss': [], 'train_map': [], 'val_map': []}
 
     print('==> Preparing data..')
     train_loader = utils.load_data(DATA_NAME, 'train', BATCH_SIZE, shuffle=True)
-    test_loader = utils.load_data(DATA_NAME, 'val', BATCH_SIZE, shuffle=True)
+    val_loader = utils.load_data(DATA_NAME, 'val', BATCH_SIZE, shuffle=True)
 
     print('==> Building model..')
     model = Model(utils.num_classes[DATA_NAME], NUM_ITERATIONS).to(device)
@@ -125,18 +124,18 @@ if __name__ == '__main__':
                                          opts={'title': 'Train Features Heatmap', 'width': 350, 'height': 350})
     train_cams_logger = VisdomLogger('image', env=DATA_NAME,
                                      opts={'title': 'Train Features CAM', 'width': 350, 'height': 350})
-    test_original_logger = VisdomLogger('image', env=DATA_NAME,
-                                        opts={'title': 'Test Original Images', 'width': 350, 'height': 350})
-    test_heatmaps_logger = VisdomLogger('image', env=DATA_NAME,
-                                        opts={'title': 'Test Features Heatmap', 'width': 350, 'height': 350})
-    test_cams_logger = VisdomLogger('image', env=DATA_NAME,
-                                    opts={'title': 'Test Features CAM', 'width': 350, 'height': 350})
+    val_original_logger = VisdomLogger('image', env=DATA_NAME,
+                                       opts={'title': 'Val Original Images', 'width': 350, 'height': 350})
+    val_heatmaps_logger = VisdomLogger('image', env=DATA_NAME,
+                                       opts={'title': 'Val Features Heatmap', 'width': 350, 'height': 350})
+    val_cams_logger = VisdomLogger('image', env=DATA_NAME,
+                                   opts={'title': 'Val Features CAM', 'width': 350, 'height': 350})
 
     best_map = 0
     for epoch in range(1, NUM_EPOCH + 1):
         train()
         with torch.no_grad():
-            test()
+            val()
             vis()
         # save statistics
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))

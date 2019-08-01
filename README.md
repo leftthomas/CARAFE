@@ -43,7 +43,7 @@ Visdom now can be accessed by going to `127.0.0.1:8097/$data_type` in your brows
 ```
 python utils.py --data_type coco
 optional arguments:
---data_name                   dataset name [default value is 'voc'](choices=['voc', 'coco', 'cityscapes'])
+--data_name                   dataset name [default value is 'voc'](choices=['voc', 'coco'])
 --batch_size                  vis batch size [default value is 64]
 --num_iterations              routing iterations number [default value is 3]
 ```
@@ -58,5 +58,3 @@ The train/test loss, mAP and heatmap are showed on visdom.
 - COCO
 ![result](results/coco.png)
 
-- CityScapes
-![result](results/cityscapses.png)
