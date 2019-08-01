@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 
 import cv2
 import numpy as np
+import torch
 import torch.utils.data as data
 from pycocotools.coco import COCO
 
@@ -57,11 +58,11 @@ class VOCDetection(data.Dataset):
     Arguments:
         root (string): filepath to VOCdevkit folder.
         image_set (string): image set to use (eg. 'train', 'val')
-        transform (callable, optional): transformation to perform on the input image
-        target_transform (callable, optional): transformation to perform on the target `annotation`
+        transform (callable): transformation to perform on the input image
+        target_transform (callable): transformation to perform on the target `annotation`
     """
 
-    def __init__(self, root, image_set='train', transform=None, target_transform=None):
+    def __init__(self, root, image_set, transform, target_transform):
         self.root = osp.join(root, 'VOCdevkit/VOC2012')
         self.transform = transform
         self.target_transform = target_transform
@@ -75,13 +76,9 @@ class VOCDetection(data.Dataset):
         target = ET.parse(self.targets[index]).getroot()
         height, width, channels = img.shape
 
-        if self.target_transform is not None:
-            target = self.target_transform(target, height, width)
-
-        if self.transform is not None:
-            img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
-            target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
-        return img, target
+        target = self.target_transform(target, height, width)
+        img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
+        return img, torch.from_numpy(boxes).float(), torch.from_numpy(labels).long()
 
     def __len__(self):
         return len(self.images)
@@ -136,11 +133,11 @@ class COCODetection(data.Dataset):
     Arguments:
         root (string): filepath to annotations folder.
         image_set (string): image set to use (eg. 'train', 'val')
-        transform (callable, optional): transformation to perform on the input image
-        target_transform (callable, optional): transformation to perform on the target `annotation`
+        transform (callable): transformation to perform on the input image
+        target_transform (callable): transformation to perform on the target `annotation`
     """
 
-    def __init__(self, root, image_set='train', transform=None, target_transform=None):
+    def __init__(self, root, image_set, transform, target_transform):
         self.root = root
         self.image_set = image_set
         self.transform = transform
@@ -156,13 +153,9 @@ class COCODetection(data.Dataset):
         target = self.coco.loadAnns(ann_ids)
         height, width, channels = img.shape
 
-        if self.target_transform is not None:
-            target = self.target_transform(target, height, width)
-
-        if self.transform is not None:
-            img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
-            target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
-        return img, target
+        target = self.target_transform(target, height, width)
+        img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
+        return img, torch.from_numpy(boxes).float(), torch.from_numpy(labels).long()
 
     def __len__(self):
         return len(self.image_ids)
