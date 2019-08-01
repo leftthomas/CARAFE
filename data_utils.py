@@ -49,15 +49,6 @@ class ConvertFromInts(object):
         return image.astype(np.float32), boxes, labels
 
 
-class SubtractMeans(object):
-    def __init__(self, mean):
-        self.mean = np.array(mean, dtype=np.float32)
-
-    def __call__(self, image, boxes=None, labels=None):
-        image -= self.mean
-        return image, boxes, labels
-
-
 class ToAbsoluteCoords(object):
     def __call__(self, image, boxes=None, labels=None):
         height, width, channels = image.shape
@@ -310,6 +301,15 @@ class ToTensor(object):
         if np.max(image) != 0:
             image = image / np.max(image)
         image = torch.from_numpy(image).permute(2, 0, 1).contiguous()
+        return image, boxes, labels
+
+
+class SubtractMeans(object):
+    def __init__(self, mean):
+        self.mean = torch.tensor(mean, dtype=torch.float).view(3, 1, 1)
+
+    def __call__(self, image, boxes=None, labels=None):
+        image -= self.mean
         return image, boxes, labels
 
 

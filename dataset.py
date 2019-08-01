@@ -71,7 +71,7 @@ class VOCDetection(data.Dataset):
             self.targets.append('{}/Annotations/{}.xml'.format(self.root, line.strip()))
 
     def __getitem__(self, index):
-        img = cv2.imread(self.images[index], cv2.IMREAD_COLOR)
+        img = cv2.imread(self.images[index])
         target = ET.parse(self.targets[index]).getroot()
         height, width, channels = img.shape
 
