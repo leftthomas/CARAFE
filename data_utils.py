@@ -336,8 +336,9 @@ class ValTransform:
 
 
 def collate_fn(batch):
-    images, targets = [], []
+    images, boxes, labels = [], [], []
     for sample in batch:
         images.append(sample[0])
-        targets.append(torch.tensor(sample[1], dtype=torch.float))
-    return torch.stack(images, dim=0), targets
+        boxes.append(torch.tensor(sample[1][:, :4], dtype=torch.float))
+        labels.append(torch.tensor(sample[1][:, 4], dtype=torch.long))
+    return torch.stack(images, dim=0), boxes, labels

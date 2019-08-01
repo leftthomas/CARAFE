@@ -48,10 +48,7 @@ class MarginLoss(nn.Module):
 def creat_multi_label(label_list, num_class):
     labels = []
     for label in label_list:
-        if len(label) > 0:
-            labels.append(torch.zeros(num_class).index_fill_(dim=-1, index=label, value=1))
-        else:
-            labels.append(torch.zeros(num_class))
+        labels.append(torch.zeros(num_class).index_fill_(dim=-1, index=label, value=1))
     labels = torch.stack(labels)
     return labels
 
@@ -104,7 +101,7 @@ if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     data_loader = load_data(DATA_NAME, 'val', BATCH_SIZE, shuffle=True)
-    images, targets = next(iter(data_loader))
+    images, boxes, labels = next(iter(data_loader))
     save_image(images, filename='results/vis_{}_original.png'.format(DATA_NAME), nrow=nrow, padding=4)
 
     model = Model(num_classes[DATA_NAME], NUM_ITERATIONS)
