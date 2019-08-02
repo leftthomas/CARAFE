@@ -18,7 +18,7 @@ num_classes = {'voc': 20, 'coco': 80}
 
 def load_data(data_name, data_type, batch_size, shuffle=True):
     transform = TrainTransform(size=300, mean=(0.4078, 0.4588, 0.4824)) if data_type == 'train' else \
-        ValTransform(size=300, mean=(0.4078, 0.4588, 0.4824))
+        ValTransform(size=300)
     if data_name == 'voc':
         data_set = VOCDetection(root='data/{}'.format(data_name), image_set=data_type, transform=transform,
                                 target_transform=VOCAnnotationTransform())
@@ -102,7 +102,7 @@ if __name__ == '__main__':
 
     data_loader = load_data(DATA_NAME, 'val', BATCH_SIZE, shuffle=True)
     images, boxes, labels = next(iter(data_loader))
-    save_image(images, filename='results/vis_{}_original.png'.format(DATA_NAME), nrow=nrow, padding=4)
+    save_image(images, filename='results/vis_{}_original.png'.format(DATA_NAME), nrow=nrow, padding=4, normalize=True)
 
     model = Model(num_classes[DATA_NAME], NUM_ITERATIONS)
     model.load_state_dict(torch.load('epochs/{}.pth'.format(DATA_NAME), map_location='cpu'))
@@ -110,5 +110,6 @@ if __name__ == '__main__':
     probam = ProbAM(model)
 
     heat_maps, cams = probam(images)
-    save_image(heat_maps, filename='results/vis_{}_heatmaps.png'.format(DATA_NAME), nrow=nrow, padding=4)
-    save_image(cams, filename='results/vis_{}_cams.png'.format(DATA_NAME), nrow=nrow, padding=4)
+    save_image(heat_maps, filename='results/vis_{}_heatmaps.png'.format(DATA_NAME), nrow=nrow, padding=4,
+               normalize=True)
+    save_image(cams, filename='results/vis_{}_cams.png'.format(DATA_NAME), nrow=nrow, padding=4, normalize=True)

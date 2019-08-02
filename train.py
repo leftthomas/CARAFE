@@ -28,7 +28,7 @@ def train():
         optimizer.step()
         meter_loss.add(loss.item())
         meter_map.add(out.detach().cpu(), labels.detach().cpu())
-        train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.2f} mAP: {:.2f}%'
+        train_progress.set_description('Train Epoch: {}---{}/{} Loss: {:.4f} mAP: {:.2f}%'
                                        .format(epoch, num_data, len(train_loader.dataset), meter_loss.value()[0],
                                                meter_map.value() * 100.0))
     loss_logger.log(epoch, meter_loss.value()[0], name='train')
@@ -51,7 +51,7 @@ def val():
         loss = criterion(out, labels)
         meter_loss.add(loss.item())
         meter_map.add(out.detach().cpu(), labels.detach().cpu())
-        val_progress.set_description('Val Epoch: {}---{}/{} Loss: {:.2f} mAP: {:.2f}%'
+        val_progress.set_description('Val Epoch: {}---{}/{} Loss: {:.4f} mAP: {:.2f}%'
                                      .format(epoch, num_data, len(val_loader.dataset), meter_loss.value()[0],
                                              meter_map.value() * 100.0))
     loss_logger.log(epoch, meter_loss.value()[0], name='val')
@@ -73,19 +73,19 @@ def vis():
     # for train image
     train_images, train_boxes, train_labels = next(iter(train_loader))
     train_images = train_images[:16]
-    train_original_logger.log(make_grid(train_images, nrow=4, padding=4).numpy())
+    train_original_logger.log(make_grid(train_images, nrow=4, padding=4, normalize=True).numpy())
     train_images = train_images.to(device)
     train_heat_maps, train_cams = probam(train_images)
-    train_heatmaps_logger.log(make_grid(train_heat_maps, nrow=4, padding=4).numpy())
-    train_cams_logger.log(make_grid(train_cams, nrow=4, padding=4).numpy())
+    train_heatmaps_logger.log(make_grid(train_heat_maps, nrow=4, padding=4, normalize=True).numpy())
+    train_cams_logger.log(make_grid(train_cams, nrow=4, padding=4, normalize=True).numpy())
     # for val image
     val_images, val_boxes, val_labels = next(iter(val_loader))
     val_images = val_images[:16]
-    val_original_logger.log(make_grid(val_images, nrow=4, padding=4).numpy())
+    val_original_logger.log(make_grid(val_images, nrow=4, padding=4, normalize=True).numpy())
     val_images = val_images.to(device)
     val_heat_maps, val_cams = probam(val_images)
-    val_heatmaps_logger.log(make_grid(val_heat_maps, nrow=4, padding=4).numpy())
-    val_cams_logger.log(make_grid(val_cams, nrow=4, padding=4).numpy())
+    val_heatmaps_logger.log(make_grid(val_heat_maps, nrow=4, padding=4, normalize=True).numpy())
+    val_cams_logger.log(make_grid(val_cams, nrow=4, padding=4, normalize=True).numpy())
 
 
 if __name__ == '__main__':

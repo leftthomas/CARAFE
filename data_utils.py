@@ -304,32 +304,21 @@ class ToTensor(object):
         return image, boxes, labels
 
 
-class SubtractMeans(object):
-    def __init__(self, mean):
-        self.mean = torch.tensor(mean, dtype=torch.float).view(3, 1, 1)
-
-    def __call__(self, image, boxes=None, labels=None):
-        image -= self.mean
-        return image, boxes, labels
-
-
 class TrainTransform(object):
     def __init__(self, size, mean):
         self.mean = mean
         self.size = size
         self.augment = Compose([ConvertFromInts(), ToAbsoluteCoords(), PhotometricDistort(), Expand(self.mean),
-                                RandomSampleCrop(), RandomMirror(), ToPercentCoords(), Resize(self.size), ToTensor(),
-                                SubtractMeans(self.mean)])
+                                RandomSampleCrop(), RandomMirror(), ToPercentCoords(), Resize(self.size), ToTensor()])
 
     def __call__(self, image, boxes=None, labels=None):
         return self.augment(image, boxes, labels)
 
 
 class ValTransform:
-    def __init__(self, size, mean):
-        self.mean = mean
+    def __init__(self, size):
         self.size = size
-        self.augment = Compose([ConvertFromInts(), Resize(self.size), ToTensor(), SubtractMeans(self.mean)])
+        self.augment = Compose([ConvertFromInts(), Resize(self.size), ToTensor()])
 
     def __call__(self, image, boxes=None, labels=None):
         return self.augment(image, boxes, labels)
