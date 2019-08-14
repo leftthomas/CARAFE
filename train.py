@@ -11,6 +11,7 @@ from torchvision.utils import make_grid
 from tqdm import tqdm
 
 import utils
+from mapmeter import mAPMeter
 from model import Model
 
 
@@ -115,7 +116,7 @@ if __name__ == '__main__':
     lr_scheduler = MultiStepLR(optimizer, milestones=[int(NUM_EPOCH * 0.5), int(NUM_EPOCH * 0.7)], gamma=0.1)
     iter_scheduler = MultiStepRI(model, milestones=[int(NUM_EPOCH * 0.7), int(NUM_EPOCH * 0.9)], verbose=True)
 
-    meter_loss, meter_map = tnt.meter.AverageValueMeter(), tnt.meter.mAPMeter()
+    meter_loss, meter_map = tnt.meter.AverageValueMeter(), mAPMeter()
     loss_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'Loss', 'width': 350, 'height': 350})
     map_logger = VisdomPlotLogger('line', env=DATA_NAME, opts={'title': 'mAP', 'width': 350, 'height': 350})
     train_original_logger = VisdomLogger('image', env=DATA_NAME,
