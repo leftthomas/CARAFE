@@ -19,7 +19,7 @@ class Model(nn.Module):
         # classifier
         self.in_length, self.out_length = 256, 32
         self.classifier = CapsuleLinear(out_capsules=num_classes, in_length=self.in_length, out_length=self.out_length,
-                                        in_capsules=361, share_weight=False, num_iterations=num_iterations)
+                                        num_iterations=num_iterations)
 
     def forward(self, x):
         x = self.features(x)
