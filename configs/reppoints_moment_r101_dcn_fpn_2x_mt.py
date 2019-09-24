@@ -142,7 +142,7 @@ total_epochs = 24
 device_ids = range(8)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/reppoints_moment_r101_dcn_fpn_2x_mt'
+work_dir = './results/reppoints_moment_r101_dcn_fpn_2x_mt'
 load_from = None
 resume_from = None
 auto_resume = True
