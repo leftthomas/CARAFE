@@ -20,12 +20,12 @@ Download it and then extract into `data` directory.
 
 ### Train
 ```
-./tools/dist_train.sh configs/reppoints_moment_x101_dcn_fpn_2x_mt.py --validate --gpus 8 --autoscale-lr
+./train.sh 8 29500 configs/reppoints_moment_x101_dcn_fpn_2x_mt.py --validate --gpus 8 --autoscale-lr
 ```
 
 ### Test
 ```
-./tools/dist_test.sh configs/reppoints_moment_x101_dcn_fpn_2x_mt.py checkpoints/reppoints_moment_x101_dcn_fpn_2x_mt.pth 8 --out results/results.pkl --eval bbox
+./test.sh 8 29501 configs/reppoints_moment_x101_dcn_fpn_2x_mt.py checkpoints/reppoints_moment_x101_dcn_fpn_2x_mt.pth --out results/results.pkl --eval bbox
 ```
 
 ## Results
