@@ -10,11 +10,11 @@ conda install pytorch torchvision -c pytorch
 ```
 - mmdetection
 ```
-pip install git+https://github.com/open-mmlab/mmdetection.git@master
+python setup.py develop
 ```
 ## Datasets
 The [COCO2017](http://cocodataset.org/#download) dataset is used.
-Download it and then extract into `data` directory.
+Download it and set the path in `configs` directory.
 
 ## Usage
 
