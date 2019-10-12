@@ -6,7 +6,7 @@ A PyTorch implementation of RepPoints based on CVPR 2019 paper
 - [Anaconda](https://www.anaconda.com/download/)
 - PyTorch
 ```
-conda install pytorch torchvision -c pytorch
+conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 ```
 - mmdetection
 ```
