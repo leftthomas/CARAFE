@@ -1,6 +1,6 @@
-# RepPoints
-A PyTorch implementation of RepPoints based on CVPR 2019 paper 
-[RepPoints: Point Set Representation for Object Detection](https://arxiv.org/abs/1904.11490). 
+# MBPL
+A PyTorch implementation of MBPL based on CVPR 2020 paper 
+[MBPL: Multiple Branches with Progressive Learning for KeyPoint Detection](https://arxiv.org/abs/1910.11490). 
 
 ## Requirements
 - [Anaconda](https://www.anaconda.com/download/)
@@ -8,66 +8,76 @@ A PyTorch implementation of RepPoints based on CVPR 2019 paper
 ```
 conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 ```
-- mmdetection
+- opencv
 ```
-python setup.py develop
+pip install opencv-python
 ```
-## Datasets
-The [COCO2017](http://cocodataset.org/#download) dataset is used.
-Download it and set the path in `configs` directory.
-
-## Usage
-
-### Train
-```shell
-# single-gpu training
-python train.py ${CONFIG_FILE} [--work_dir ${WORK_DIR}] [--resume_from ${CHECKPOINT_FILE}] [--validate] [--autoscale-lr]
-# python train.py configs/reppoints_moment_x101_dcn_fpn_2x_mt.py --validate --autoscale-lr
-
-# multi-gpu training
-./train.sh ${GPU_NUM} ${PORT} ${CONFIG_FILE} [--work_dir ${WORK_DIR}] [--resume_from ${CHECKPOINT_FILE}] [--validate] [--autoscale-lr]
-# ./train.sh 8 29500 configs/reppoints_moment_x101_dcn_fpn_2x_mt.py --validate --autoscale-lr
+- pycocotools
+```
+pip install git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI
+```
+- fvcore
+```
+pip install git+https://github.com/facebookresearch/fvcore
+```
+- detectron2
+```
+pip install git+https://github.com/facebookresearch/detectron2.git@master
 ```
 
-Optional arguments are:
-- `WORK_DIR`: Override the working directory specified in the config file.
-- `CHECKPOINT_FILE`: Resume from a previous checkpoint file.
-- `--validate`: Perform evaluation at every k (default value is 1) epochs during the training.
-- `--autoscale-lr`: Automatically scale lr with the number of gpus.
-
-### Test
-```shell
-# single-gpu testing
-python test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} [--out ${RESULT_FILE}] [--json_out ${RESULT_JSON_FILE}] [--eval ${EVAL_METRICS}] [--show]
-# python test.py configs/reppoints_moment_x101_dcn_fpn_2x_mt.py checkpoints/reppoints_moment_x101_dcn_fpn_2x_mt.pth --json_out results/results
-
-# multi-gpu testing
-./test.sh ${GPU_NUM} ${PORT} ${CONFIG_FILE} ${CHECKPOINT_FILE} [--out ${RESULT_FILE}] [--json_out ${RESULT_JSON_FILE}] [--eval ${EVAL_METRICS}]
-# ./test.sh 8 29501 configs/reppoints_moment_x101_dcn_fpn_2x_mt.py checkpoints/reppoints_moment_x101_dcn_fpn_2x_mt.pth --out results/results.pkl  --eval bbox
+## Training
+To train a model, run
+```bash
+python train_net.py --config-file <config.yaml>
 ```
 
-Optional arguments:
-- `RESULT_FILE`: Filename of the output results in pickle format. If not specified, the results will not be saved to a file.
-- `RESULT_JSON_FILE`: Filename of the output results without extension in json format. If not specified, the results will 
-not be saved to a file.
-- `EVAL_METRICS`: Items to be evaluated on the results. Allowed values are: `proposal_fast`, `proposal`, `bbox`, `segm`, `keypoints`.
-- `--show`: If specified, detection results will be ploted on the images and shown in a new window. It is only applicable 
-to single GPU testing. Please make sure that GUI is available in your environment, otherwise you may encounter the error 
-like `cannot connect to X server`.
+For example, to launch end-to-end R-CNN training with ResNet-50 backbone on 8 GPUs,
+one should execute:
+```bash
+python train_net.py --config-file configs/r50.yaml --num-gpus 8
+```
 
-## Results
+## Evaluation
+Model evaluation can be done similarly:
+```bash
+python train_net.py --config-file configs/r50.yaml --num-gpus 8 --eval-only MODEL.WEIGHTS checkpoints/model.pth
+```
 
-The results on COCO 2017val are shown in the table below.
+## COCO Person Keypoint Detection Baselines with Keypoint R-CNN
+<table><tbody>
+<!-- START TABLE -->
+<!-- TABLE HEADER -->
+<th valign="bottom">Name</th>
+<th valign="bottom">lr<br/>sched</th>
+<th valign="bottom">train<br/>time<br/>(s/iter)</th>
+<th valign="bottom">inference<br/>time<br/>(s/im)</th>
+<th valign="bottom">train<br/>mem<br/>(GB)</th>
+<th valign="bottom">box<br/>AP</th>
+<th valign="bottom">kp.<br/>AP</th>
+<th valign="bottom">model id</th>
+<th valign="bottom">download</th>
+<!-- TABLE BODY -->
+<!-- ROW: keypoint_rcnn_R_50_FPN_1x -->
+ <tr><td align="left"><a href="configs/r50_fpn.yaml">R50-FPN</a></td>
+<td align="center">1x</td>
+<td align="center">0.315</td>
+<td align="center">0.102</td>
+<td align="center">5.0</td>
+<td align="center">53.6</td>
+<td align="center">64.0</td>
+<td align="center">137261548</td>
+<td align="center"><a href="https://dl.fbaipublicfiles.com/detectron2/COCO-Keypoints/keypoint_rcnn_R_50_FPN_1x/137261548/model_final_04e291.pkl">model</a>&nbsp;|&nbsp;<a href="https://dl.fbaipublicfiles.com/detectron2/COCO-Keypoints/keypoint_rcnn_R_50_FPN_1x/137261548/metrics.json">metrics</a></td>
+</tr>
+</tbody></table>
 
-| Method | Backbone | convert func | Lr schd | box AP | Download |
-| :----: | :------: | :-------: | :-----: | :----: | :------: |
-| RepPoints | X-101-FPN-DCN | moment | 2x (ms train)   | 45.6| [model](https://drive.google.com/open?id=1nr9gcVWxzeakbfPC6ON9yvKOuLzj_RrJ) |
-| RepPoints | X-101-FPN-DCN | moment | 2x (ms train&ms test)   | 46.8|          |
+## <a name="CitingTridentNet"></a>Citing TridentNet
+If you use TridentNet, please use the following BibTeX entry.
 
-**Notes:**
-
-- `R-xx`, `X-xx` denote the ResNet and ResNeXt architectures, respectively. 
-- `DCN` denotes replacing 3x3 conv with the 3x3 deformable convolution in `c3-c5` stages of backbone.
-- `moment`, `partial MinMax`, `MinMax` in the `convert func` column are three functions to convert a point set to a 
-pseudo box.
-- `ms` denotes multi-scale training or multi-scale test.
+```
+@InProceedings{li2019scale,
+  title={Scale-Aware Trident Networks for Object Detection},
+  author={Li, Yanghao and Chen, Yuntao and Wang, Naiyan and Zhang, Zhaoxiang},
+  journal={The International Conference on Computer Vision (ICCV)},
+  year={2019}
+}
+```
