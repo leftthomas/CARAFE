@@ -58,7 +58,7 @@ python train_net.py --config-file configs/r50.yaml --num-gpus 8 --eval-only MODE
 <th valign="bottom">download</th>
 <!-- TABLE BODY -->
 <!-- ROW: keypoint_rcnn_R_50_FPN_1x -->
- <tr><td align="left"><a href="configs/r50_fpn.yaml">R50-FPN</a></td>
+ <tr><td align="left"><a href="configs/reppoints_fpn.yaml">R50-FPN</a></td>
 <td align="center">1x</td>
 <td align="center">0.315</td>
 <td align="center">0.102</td>
