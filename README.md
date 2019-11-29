@@ -1,6 +1,5 @@
-# MBPL
-A PyTorch implementation of MBPL based on CVPR 2020 paper 
-[MBPL: Multiple Branches with Progressive Learning for KeyPoint Detection](https://arxiv.org/abs/1910.11490). 
+# RepPoints
+A PyTorch implementation of RepPoints based on ICCV 2019 paper [RepPoints: Point Set Representation for Object Detection](https://arxiv.org/abs/1904.11490). 
 
 ## Requirements
 - [Anaconda](https://www.anaconda.com/download/)
@@ -29,59 +28,82 @@ pip install git+https://github.com/facebookresearch/fvcore
 pip install git+https://github.com/facebookresearch/detectron2.git@master
 ```
 
+## Dataset
+The dataset is assumed to exist in a directory called `datasets/`, under the directory where you launch the program.
+
 ## Training
 To train a model, run
 ```bash
 python train_net.py --config-file <config.yaml>
 ```
 
-For example, to launch end-to-end R-CNN training with ResNet-50 backbone on 8 GPUs,
-one should execute:
+For example, to launch end-to-end RPDet training with `ResNet-50` backbone for `coco` dataset on 8 GPUs, one should execute:
 ```bash
-python train_net.py --config-file configs/r50.yaml --num-gpus 8
+python train_net.py --config-file configs/r50_coco.yaml --num-gpus 8
 ```
 
 ## Evaluation
 Model evaluation can be done similarly:
 ```bash
-python train_net.py --config-file configs/r50.yaml --num-gpus 8 --eval-only MODEL.WEIGHTS checkpoints/model.pth
+python train_net.py --config-file configs/r50_coco.yaml --num-gpus 8 --eval-only MODEL.WEIGHTS epochs/model.pth
 ```
 
-## COCO Person Keypoint Detection Baselines with Keypoint R-CNN
-<table><tbody>
-<!-- START TABLE -->
-<!-- TABLE HEADER -->
-<th valign="bottom">Name</th>
-<th valign="bottom">lr<br/>sched</th>
-<th valign="bottom">train<br/>time<br/>(s/iter)</th>
-<th valign="bottom">inference<br/>time<br/>(s/im)</th>
-<th valign="bottom">train<br/>mem<br/>(GB)</th>
-<th valign="bottom">box<br/>AP</th>
-<th valign="bottom">kp.<br/>AP</th>
-<th valign="bottom">model id</th>
-<th valign="bottom">download</th>
-<!-- TABLE BODY -->
-<!-- ROW: keypoint_rcnn_R_50_FPN_1x -->
- <tr><td align="left"><a href="configs/reppoints_fpn.yaml">R50-FPN</a></td>
-<td align="center">1x</td>
-<td align="center">0.315</td>
-<td align="center">0.102</td>
-<td align="center">5.0</td>
-<td align="center">53.6</td>
-<td align="center">64.0</td>
-<td align="center">137261548</td>
-<td align="center"><a href="https://dl.fbaipublicfiles.com/detectron2/COCO-Keypoints/keypoint_rcnn_R_50_FPN_1x/137261548/model_final_04e291.pkl">model</a>&nbsp;|&nbsp;<a href="https://dl.fbaipublicfiles.com/detectron2/COCO-Keypoints/keypoint_rcnn_R_50_FPN_1x/137261548/metrics.json">metrics</a></td>
-</tr>
-</tbody></table>
+## Results
+There are some difference between this implementation and official implementation:
+1. The image sizes of `Multi-Scale Training` are (640, 672, 704, 736, 768, 800) for `coco` dataset;
+2. The image sizes of `Multi-Scale Training` are (800, 832, 864, 896, 928, 960, 992, 1024) for `cityscapes` dataset;
+3. No `RandomCrop` used;
+4. Learning rate policy is `WarmupCosineLR`;
 
-## <a name="CitingTridentNet"></a>Citing TridentNet
-If you use TridentNet, please use the following BibTeX entry.
-
-```
-@InProceedings{li2019scale,
-  title={Scale-Aware Trident Networks for Object Detection},
-  author={Li, Yanghao and Chen, Yuntao and Wang, Naiyan and Zhang, Zhaoxiang},
-  journal={The International Conference on Computer Vision (ICCV)},
-  year={2019}
-}
-```
+<table>
+	<tbody>
+		<!-- START TABLE -->
+		<!-- TABLE HEADER -->
+		<th>Name</th>
+		<th>train time (s/iter)</th>
+		<th>inference time (s/im)</th>
+		<th>train mem (GB)</th>
+		<th>PA</br>%</th>
+		<th>mean PA %</th>
+		<th>mean IoU %</th>
+		<th>FW IoU %</th>
+		<th>download link</th>
+		<!-- TABLE BODY -->
+		<!-- ROW: r50 -->
+		<tr>
+			<td align="center"><a href="configs/r50_coco.yaml">R50</a></td>
+			<td align="center">1.04</td>
+			<td align="center">0.11</td>
+			<td align="center">11.14</td>
+			<td align="center">80.49</td>
+			<td align="center">53.92</td>
+			<td align="center">42.71</td>
+			<td align="center">68.69</td>
+			<td align="center"><a href="https://pan.baidu.com/s/1jP7zWezVPBZWx_9LjJCgWg">model</a>&nbsp;|&nbsp;xxi8</td>
+		</tr>
+		<!-- ROW: r101 -->
+		<tr>
+			<td align="center"><a href="configs/r101_coco.yaml">R101</a></td>
+			<td align="center">1.55</td>
+			<td align="center">0.18</td>
+			<td align="center">17.92</td>
+			<td align="center">81.16</td>
+			<td align="center">54.54</td>
+			<td align="center">43.61</td>
+			<td align="center">69.50</td>
+			<td align="center"><a href="https://pan.baidu.com/s/1BeGS7gckGAczd1euB55EFA">model</a>&nbsp;|&nbsp;1jhd</td>
+		</tr>
+		<!-- ROW: r152 -->
+		<tr>
+			<td align="center"><a href="configs/r152_coco.yaml">R152</a></td>
+			<td align="center">1.95</td>
+			<td align="center">0.23</td>
+			<td align="center">23.88</td>
+			<td align="center">81.73</td>
+			<td align="center">56.53</td>
+			<td align="center">45.15</td>
+			<td align="center">70.40</td>
+			<td align="center"><a href="https://pan.baidu.com/s/1c-AWtejmmQs2pk_uNu_kYA">model</a>&nbsp;|&nbsp;wka6</td>
+		</tr>
+	</tbody>
+</table>
