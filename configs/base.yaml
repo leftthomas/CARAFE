@@ -1,19 +1,24 @@
 MODEL:
-  META_ARCHITECTURE: "AnchorFreeNetwork"
+  META_ARCHITECTURE: "RetinaNet"
   BACKBONE:
-    FREEZE_AT: 2
-  ANCHOR_FREE_HEADS:
-    NUM_CLASSES: 80
-DATALOADER:
-  NUM_WORKERS: 4
+    NAME: "build_retinanet_resnet_fpn_backbone"
+  RESNETS:
+    OUT_FEATURES: ["res3", "res4", "res5"]
+  ANCHOR_GENERATOR:
+    SIZES: !!python/object/apply:eval ["[[x, x * 2**(1.0/3), x * 2**(2.0/3) ] for x in [32, 64, 128, 256, 512 ]]"]
+  FPN:
+    IN_FEATURES: ["res3", "res4", "res5"]
+  RETINANET:
+    IOU_THRESHOLDS: [0.4, 0.5]
+    IOU_LABELS: [0, -1, 1]
 DATASETS:
   TRAIN: ("coco_2017_train",)
   TEST: ("coco_2017_val",)
 SOLVER:
   IMS_PER_BATCH: 16
-  BASE_LR: 0.02
-  STEPS: (60000, 80000) #(210000, 250000)
-  MAX_ITER: 90000       #270000
+  BASE_LR: 0.01
+  STEPS: (60000, 80000)
+  MAX_ITER: 90000
 INPUT:
   MIN_SIZE_TRAIN: (640, 672, 704, 736, 768, 800)
 TEST:
