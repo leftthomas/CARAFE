@@ -71,7 +71,7 @@ There are some difference between this implementation and official implementatio
 		<!-- TABLE BODY -->
 		<!-- ROW: r50 -->
 		<tr>
-			<td align="center"><a href="configs/r50_fpn.yaml">R50</a></td>
+			<td align="center"><a href="configs/r50.yaml">R50</a></td>
 			<td align="center">1.04</td>
 			<td align="center">0.11</td>
 			<td align="center">11.14</td>
