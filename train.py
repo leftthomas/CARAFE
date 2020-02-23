@@ -12,27 +12,41 @@ from model import Model
 from utils import ImageReader, recall
 
 
-def train(net, optim):
+# train for one epoch to learn unique features
+def train(net, train_optimizer):
     net.train()
-    total_loss, total_correct, total_num, data_bar = 0, 0, 0, tqdm(train_data_loader)
-    for inputs, labels in data_bar:
-        inputs, labels = inputs.cuda(), labels.cuda()
-        features, out = net(inputs)
-        loss = cel_criterion(out.permute(0, 2, 1).contiguous(), labels)
-        optim.zero_grad()
+    total_loss, total_num, data_bar = 0.0, 0, tqdm(train_data_loader)
+    for pos_1, pos_2, target in data_bar:
+        pos_1, pos_2 = pos_1.cuda(non_blocking=True), pos_2.cuda(non_blocking=True)
+        feature_1, out_1 = net(pos_1)
+        feature_2, out_2 = net(pos_2)
+
+        # [2*B, D]
+        out = torch.cat([out_1, out_2], dim=0)
+        # [2*B, 2*B]
+        sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / temperature)
+        mask = (torch.ones_like(sim_matrix) - torch.eye(2 * batch_size, device=sim_matrix.device)).bool()
+        # [2*B, 2*B-1]
+        sim_matrix = sim_matrix.masked_select(mask).view(2 * batch_size, -1)
+
+        # compute loss
+        pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / temperature)
+        # [2*B]
+        pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
+        loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
+
+        train_optimizer.zero_grad()
         loss.backward()
-        optim.step()
-        pred = torch.argmax(out, dim=-1)
-        total_loss += loss.item()
-        total_correct += torch.sum(pred == labels).item() / ENSEMBLE_SIZE
-        total_num += inputs.size(0)
-        data_bar.set_description('Epoch {}/{} - Loss:{:.4f} - Acc:{:.2f}%'
-                                 .format(epoch, num_epochs, total_loss / total_num, total_correct / total_num * 100))
+        train_optimizer.step()
 
-    return total_loss / total_num, total_correct / total_num * 100
+        total_num += batch_size
+        total_loss += loss.item() * batch_size
+        data_bar.set_description('Train Epoch: [{}/{}] - Loss:{:.4f}'.format(epoch, num_epochs, total_loss / total_num))
+
+    return total_loss / total_num
 
 
-def eval(net, recalls):
+def eval(net, ranks):
     net.eval()
     with torch.no_grad():
         # obtain feature vectors for all data
@@ -47,12 +61,12 @@ def eval(net, recalls):
 
     # compute recall metric
     if data_name == 'isc':
-        acc_list = recall(eval_dict['test']['features'], test_data_set.labels, recalls,
+        acc_list = recall(eval_dict['test']['features'], test_data_set.labels, ranks,
                           eval_dict['gallery']['features'], gallery_data_set.labels)
     else:
-        acc_list = recall(eval_dict['test']['features'], test_data_set.labels, recalls)
+        acc_list = recall(eval_dict['test']['features'], test_data_set.labels, ranks)
     desc = ''
-    for index, id in enumerate(recalls):
+    for index, id in enumerate(ranks):
         desc += 'R@{}:{:.2f}% '.format(id, acc_list[index] * 100)
         results['test_recall@{}'.format(recall_ids[index])].append(acc_list[index] * 100)
     print(desc)
@@ -76,15 +90,13 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
     # args parse
-    data_path, data_name, crop_type, feature_dim = opt.data_path, opt.data_name, opt.crop_type, opt.feature_dim
-    temperature, batch_size, num_epochs, recalls = opt.temperature, opt.batch_size, opt.num_epochs, opt.recalls
-    backbone_type = opt.backbone_type
+    data_path, data_name, crop_type, backbone_type = opt.data_path, opt.data_name, opt.crop_type, opt.backbone_type
+    feature_dim, temperature, batch_size, num_epochs = opt.feature_dim, opt.temperature, opt.batch_size, opt.num_epochs
+    recalls = [int(k) for k in opt.recalls.split(',')]
     save_name_pre = '{}_{}_{}_{}_{}_{}_{}'.format(data_name, crop_type, backbone_type, feature_dim, temperature,
                                                   batch_size, num_epochs)
-    recall_ids = [int(k) for k in recalls.split(',')]
-
     results = {'train_loss': []}
-    for r in recall_ids:
+    for r in recalls:
         results['test_recall@{}'.format(r)] = []
 
     # dataset loaders
@@ -113,7 +125,7 @@ if __name__ == '__main__':
     for epoch in range(1, num_epochs + 1):
         train_loss = train(model, optimizer)
         results['train_loss'].append(train_loss)
-        rank = eval(model, recall_ids)
+        rank = eval(model, recalls)
         # save statistics
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
         data_frame.to_csv('results/{}_statistics.csv'.format(save_name_pre), index_label='epoch')
