@@ -81,8 +81,8 @@ if __name__ == '__main__':
     parser.add_argument('--backbone_type', default='resnet18', type=str,
                         choices=['resnet18', 'resnet34', 'resnet50', 'resnext50'], help='backbone type')
     parser.add_argument('--feature_dim', default=128, type=int, help='feature dim')
-    parser.add_argument('--temperature', default=0.5, type=float, help='temperature used in softmax')
-    parser.add_argument('--batch_size', default=512, type=int, help='train batch size')
+    parser.add_argument('--temperature', default=0.1, type=float, help='temperature used in softmax')
+    parser.add_argument('--batch_size', default=128, type=int, help='train batch size')
     parser.add_argument('--num_epochs', default=500, type=int, help='train epoch number')
     parser.add_argument('--recalls', default='1,2,4,8', type=str, help='selected recall')
 

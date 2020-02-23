@@ -34,8 +34,8 @@ optional arguments:
 --crop_type                   crop data or not, it only works for car or cub dataset [default value is 'uncropped'](choices=['uncropped', 'cropped'])
 --backbone_type               backbone type [default value is 'resnet18'](choices=['resnet18', 'resnet34', 'resnet50', 'resnext50'])
 --feature_dim                 feature dim [default value is 128]
---temperature                 temperature used in softmax [default value is 0.5]
---batch_size                  train batch size [default value is 512]
+--temperature                 temperature used in softmax [default value is 0.1]
+--batch_size                  train batch size [default value is 128]
 --num_epochs                  train epochs number [default value is 500]
 --recalls                     selected recall [default value is '1,2,4,8']
 ```
