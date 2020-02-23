@@ -63,7 +63,7 @@ def val(net, ranks):
                           eval_dict['gallery']['features'], gallery_data_set.labels)
     else:
         acc_list = recall(eval_dict['test']['features'], test_data_set.labels, ranks)
-    desc = ''
+    desc = 'Eval Epoch: [{}/{}] - '.format(epoch, num_epochs)
     for index, recall_id in enumerate(ranks):
         desc += 'R@{}:{:.2f}% '.format(recall_id, acc_list[index] * 100)
         results['test_recall@{}'.format(recall_id)].append(acc_list[index] * 100)
