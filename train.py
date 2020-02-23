@@ -4,9 +4,7 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 from thop import profile, clever_format
-from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
-from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 
@@ -29,7 +27,7 @@ def train(net, optim):
         total_correct += torch.sum(pred == labels).item() / ENSEMBLE_SIZE
         total_num += inputs.size(0)
         data_bar.set_description('Epoch {}/{} - Loss:{:.4f} - Acc:{:.2f}%'
-                                 .format(epoch, NUM_EPOCHS, total_loss / total_num, total_correct / total_num * 100))
+                                 .format(epoch, num_epochs, total_loss / total_num, total_correct / total_num * 100))
 
     return total_loss / total_num, total_correct / total_num * 100
 
@@ -48,7 +46,7 @@ def eval(net, recalls):
             eval_dict[key]['features'] = torch.cat(eval_dict[key]['features'], dim=0)
 
     # compute recall metric
-    if DATA_NAME == 'isc':
+    if data_name == 'isc':
         acc_list = recall(eval_dict['test']['features'], test_data_set.labels, recalls,
                           eval_dict['gallery']['features'], gallery_data_set.labels)
     else:
@@ -68,60 +66,54 @@ if __name__ == '__main__':
                         help='dataset name')
     parser.add_argument('--crop_type', default='uncropped', type=str, choices=['uncropped', 'cropped'],
                         help='crop data or not, it only works for car or cub dataset')
+    parser.add_argument('--backbone_type', default='resnet18', type=str,
+                        choices=['resnet18', 'resnet34', 'resnet50', 'resnext50'], help='backbone type')
+    parser.add_argument('--feature_dim', default=128, type=int, help='feature dim')
+    parser.add_argument('--temperature', default=0.5, type=float, help='temperature used in softmax')
+    parser.add_argument('--batch_size', default=512, type=int, help='train batch size')
+    parser.add_argument('--num_epochs', default=500, type=int, help='train epoch number')
     parser.add_argument('--recalls', default='1,2,4,8', type=str, help='selected recall')
-    parser.add_argument('--load_ids', action='store_true', help='load already generated ids or not')
-    parser.add_argument('--batch_size', default=128, type=int, help='train batch size')
-    parser.add_argument('--num_epochs', default=12, type=int, help='train epoch number')
-    parser.add_argument('--share_type', default='block5', type=str,
-                        choices=['none', 'conv', 'block1', 'block2', 'block3', 'block4', 'block5', 'block6', 'block7',
-                                 'last_conv'], help='share backbone module name')
-    parser.add_argument('--ensemble_size', default=24, type=int, help='ensemble model size')
-    parser.add_argument('--meta_class_size', default=12, type=int, help='meta class size')
-    parser.add_argument('--feature_dim', default=512, type=int, help='feature dim')
 
     opt = parser.parse_args()
     # args parse
-    DATA_PATH, DATA_NAME, CROP_TYPE, RECALLS = opt.data_path, opt.data_name, opt.crop_type, opt.recalls
-    LOAD_IDS, BATCH_SIZE, NUM_EPOCHS, SHARE_TYPE = opt.load_ids, opt.batch_size, opt.num_epochs, opt.share_type
-    ENSEMBLE_SIZE, META_CLASS_SIZE, FEATURE_DIM = opt.ensemble_size, opt.meta_class_size, opt.feature_dim
-    save_name_pre = '{}_{}_{}_{}_{}_{}'.format(DATA_NAME, CROP_TYPE, SHARE_TYPE, ENSEMBLE_SIZE, META_CLASS_SIZE,
-                                               FEATURE_DIM)
-    recall_ids = [int(k) for k in RECALLS.split(',')]
+    data_path, data_name, crop_type, feature_dim = opt.data_path, opt.data_name, opt.crop_type, opt.feature_dim
+    temperature, batch_size, num_epochs, recalls = opt.temperature, opt.batch_size, opt.num_epochs, opt.recalls
+    backbone_type = opt.backbone_type
+    save_name_pre = '{}_{}_{}_{}_{}_{}_{}'.format(data_name, crop_type, backbone_type, feature_dim, temperature,
+                                                  batch_size, num_epochs)
+    recall_ids = [int(k) for k in recalls.split(',')]
 
-    results = {'train_loss': [], 'train_accuracy': []}
-    for index, id in enumerate(recall_ids):
-        results['test_recall@{}'.format(recall_ids[index])] = []
+    results = {'train_loss': []}
+    for r in recall_ids:
+        results['test_recall@{}'.format(r)] = []
 
-    # dataset loader
-    train_data_set = ImageReader(DATA_PATH, DATA_NAME, 'train', CROP_TYPE, ENSEMBLE_SIZE, META_CLASS_SIZE, LOAD_IDS)
-    train_data_loader = DataLoader(train_data_set, BATCH_SIZE, shuffle=True, num_workers=16)
-    train_ext_data_set = ImageReader(DATA_PATH, DATA_NAME, 'train_ext', CROP_TYPE)
-    train_ext_data_loader = DataLoader(train_ext_data_set, BATCH_SIZE, shuffle=False, num_workers=16)
-    test_data_set = ImageReader(DATA_PATH, DATA_NAME, 'query' if DATA_NAME == 'isc' else 'test', CROP_TYPE)
-    test_data_loader = DataLoader(test_data_set, BATCH_SIZE, shuffle=False, num_workers=16)
+    # dataset loaders
+    train_data_set = ImageReader(data_path, data_name, 'train', crop_type)
+    train_data_loader = DataLoader(train_data_set, batch_size, shuffle=True, num_workers=16, pin_memory=True,
+                                   drop_last=True)
+    train_ext_data_set = ImageReader(data_path, data_name, 'train_ext', crop_type)
+    train_ext_data_loader = DataLoader(train_ext_data_set, batch_size, shuffle=False, num_workers=16, pin_memory=True)
+    test_data_set = ImageReader(data_path, data_name, 'query' if data_name == 'isc' else 'test', crop_type)
+    test_data_loader = DataLoader(test_data_set, batch_size, shuffle=False, num_workers=16, pin_memory=True)
     eval_dict = {'train': {'data_loader': train_ext_data_loader}, 'test': {'data_loader': test_data_loader}}
-    if DATA_NAME == 'isc':
-        gallery_data_set = ImageReader(DATA_PATH, DATA_NAME, 'gallery', CROP_TYPE)
-        gallery_data_loader = DataLoader(gallery_data_set, BATCH_SIZE, shuffle=False, num_workers=16)
+    if data_name == 'isc':
+        gallery_data_set = ImageReader(data_path, data_name, 'gallery', crop_type)
+        gallery_data_loader = DataLoader(gallery_data_set, batch_size, shuffle=False, num_workers=16, pin_memory=True)
         eval_dict['gallery'] = {'data_loader': gallery_data_loader}
 
-    # model setup, model profile, optimizer config and loss definition
-    model = Model(ENSEMBLE_SIZE, META_CLASS_SIZE, FEATURE_DIM, SHARE_TYPE).cuda()
-    flops, params = profile(model, inputs=(torch.randn(1, 3, 256, 256).cuda(),))
+    # model setup, model profile and optimizer config
+    model = Model(backbone_type, feature_dim).cuda()
+    flops, params = profile(model, inputs=(torch.randn(1, 3, 224, 224).cuda(),))
     flops, params = clever_format([flops, params])
     print('# Model Params: {} FLOPs: {}'.format(params, flops))
-    optimizer = Adam(model.parameters(), lr=1e-4)
-    lr_scheduler = MultiStepLR(optimizer, milestones=[int(0.6 * NUM_EPOCHS), int(0.8 * NUM_EPOCHS)], gamma=0.5)
-    cel_criterion = CrossEntropyLoss()
+    optimizer = Adam(model.parameters(), lr=1e-3)
 
+    # train and eval loop
     best_recall = 0.0
-    for epoch in range(1, NUM_EPOCHS + 1):
-        train_loss, train_accuracy = train(model, optimizer)
+    for epoch in range(1, num_epochs + 1):
+        train_loss = train(model, optimizer)
         results['train_loss'].append(train_loss)
-        results['train_accuracy'].append(train_accuracy)
         rank = eval(model, recall_ids)
-        lr_scheduler.step()
-
         # save statistics
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
         data_frame.to_csv('results/{}_statistics.csv'.format(save_name_pre), index_label='epoch')
@@ -135,9 +127,9 @@ if __name__ == '__main__':
             data_base['test_images'] = test_data_set.images
             data_base['test_labels'] = test_data_set.labels
             data_base['test_features'] = eval_dict['test']['features']
-            data_base['gallery_images'] = gallery_data_set.images if DATA_NAME == 'isc' else test_data_set.images
-            data_base['gallery_labels'] = gallery_data_set.labels if DATA_NAME == 'isc' else test_data_set.labels
-            data_base['gallery_features'] = eval_dict['gallery']['features'] \
-                if DATA_NAME == 'isc' else eval_dict['test']['features']
+            if data_name == 'isc':
+                data_base['gallery_images'] = gallery_data_set.images
+                data_base['gallery_labels'] = gallery_data_set.labels
+                data_base['gallery_features'] = eval_dict['gallery']['features']
             torch.save(model.state_dict(), 'results/{}_model.pth'.format(save_name_pre))
             torch.save(data_base, 'results/{}_data_base.pth'.format(save_name_pre))
