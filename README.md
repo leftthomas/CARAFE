@@ -1,109 +1,422 @@
-# RepPoints
-A PyTorch implementation of RepPoints based on ICCV 2019 paper [RepPoints: Point Set Representation for Object Detection](https://arxiv.org/abs/1904.11490). 
+# TVC
+A PyTorch implementation of TVC based on the paper [Triple-View Combination for Unsupervised Visual Representation Learning]().
+
+<div align="center">
+  <img src="results/architecture.png"/>
+</div>
 
 ## Requirements
 - [Anaconda](https://www.anaconda.com/download/)
-- PyTorch
+- [PyTorch](https://pytorch.org)
 ```
-conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
+conda install pytorch torchvision cudatoolkit=10.0 -c pytorch
 ```
-- opencv
+- thop
 ```
-pip install opencv-python
-```
-- tensorboard
-```
-pip install tensorboard
-```
-- pycocotools
-```
-pip install git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI
-```
-- fvcore
-```
-pip install git+https://github.com/facebookresearch/fvcore
-```
-- detectron2
-```
-pip install git+https://github.com/facebookresearch/detectron2.git@master
+pip install thop
 ```
 
-## Dataset
-The dataset is assumed to exist in a directory called `datasets/`, under the directory where you launch the program.
+## Datasets
+[CARS196](http://ai.stanford.edu/~jkrause/cars/car_dataset.html), [CUB200-2011](http://www.vision.caltech.edu/visipedia/CUB-200-2011.html), 
+[Standard Online Products](http://cvgl.stanford.edu/projects/lifted_struct/) and 
+[In-shop Clothes](http://mmlab.ie.cuhk.edu.hk/projects/DeepFashion/InShopRetrieval.html) are used in this repo.
 
-## Training
-To train a model, run
-```bash
-python train_net.py --config-file <config.yaml>
+You should download these datasets by yourself, and extract them into `$data_path` directory, make sure the dir names are 
+`car`, `cub`, `sop` and `isc`. Then run `python data_utils.py --data_path $data_path` to preprocess them.
+
+## Usage
+### Train Model
+```
+python train.py --data_name cub --crop_type cropped --num_epochs 50
+optional arguments:
+--data_path                   datasets path [default value is '/home/data']
+--data_name                   dataset name [default value is 'car'](choices=['car', 'cub', 'sop', 'isc'])
+--crop_type                   crop data or not, it only works for car or cub dataset [default value is 'uncropped'](choices=['uncropped', 'cropped'])
+--recalls                     selected recall [default value is '1,2,4,8']
+--load_ids                    load already generated ids or not [default value is False]
+--batch_size                  train batch size [default value is 32]
+--num_epochs                  train epochs number [default value is 20]
+--ensemble_size               ensemble model size [default value is 48]
+--meta_class_size             meta class size [default value is 12]
 ```
 
-For example, to launch end-to-end RPDet training with `ResNet-50` backbone for `coco` dataset on 8 GPUs, one should execute:
-```bash
-python train_net.py --config-file configs/r50_coco.yaml --num-gpus 8
+### Inference Demo
+```
+python inference.py --retrieval_num 10 --data_type train
+optional arguments:
+--query_img_name              query image name [default value is '/home/data/car/uncropped/008055.jpg']
+--data_base                   queried database [default value is 'car_uncropped_48_12_data_base.pth']
+--data_type                   retrieval database type [default value is 'test'](choices=['train', 'test'])
+--retrieval_num               retrieval number [default value is 8]
 ```
 
-## Evaluation
-Model evaluation can be done similarly:
-```bash
-python train_net.py --config-file configs/r50_coco.yaml --num-gpus 8 --eval-only MODEL.WEIGHTS epochs/model.pth
-```
+## Benchmarks
+Adam optimizer is used with learning rate scheduling. The models are trained with batch size `32` on one 
+NVIDIA Tesla V100 (32G) GPUs.
+
+The images are preprocessed with resize (256, 256), random horizontal flip and normalize. 
+
+For `CARS196` and `CUB200` datasets, ensemble size `48`, meta class size `12` and `20` epochs are used. 
+
+For `SOP` dataset, ensemble size `48`, meta class size `512` and `40` epochs are used.
+
+For `In-shop` dataset, ensemble size `48`, meta class size `192` and `40` epochs are used.
+
+### Model Parameter
+<table>
+  <thead>
+    <tr>
+      <th>Backbone</th>
+      <th>CARS196</th>
+      <th>CUB200</th>
+      <th>SOP</th>
+      <th>In-shop</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">ResNet18</td>
+      <td align="center">529,365,376</td>
+      <td align="center">529,365,376</td>
+      <td align="center">541,677,376</td>
+      <td align="center">533,797,696</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet34</td>
+      <td align="center">1,011,079,808</td>
+      <td align="center">1,011,079,808</td>
+      <td align="center">1,023,391,808</td>
+      <td align="center">1,015,512,128</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet50</td>
+      <td align="center">1,118,974,592</td>
+      <td align="center">1,118,974,592</td>
+      <td align="center">1,168,150,592</td>
+      <td align="center">1,136,677,952</td>
+    </tr>
+    <tr>
+      <td align="center">ResNeXt50</td>
+      <td align="center">1,094,093,696</td>
+      <td align="center">1,094,093,696</td>
+      <td align="center">1,143,269,696</td>
+      <td align="center">1,111,797,056</td>
+    </tr>
+  </tbody>
+</table>
+
+### CARS196 (Uncropped)
+<table>
+  <thead>
+    <tr>
+      <th>Backbone</th>
+      <th>R@1</th>
+      <th>R@2</th>
+      <th>R@4</th>
+      <th>R@8</th>
+      <th>Download Link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">ResNet18</td>
+      <td align="center">93.4%</td>
+      <td align="center">96.6%</td>
+      <td align="center">98.1%</td>
+      <td align="center">99.0%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1lkek0pPAWGNNZiOAejFCxw">model</a>&nbsp;|&nbsp;sp3q</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet34</td>
+      <td align="center">93.5%</td>
+      <td align="center">96.2%</td>
+      <td align="center">97.7%</td>
+      <td align="center">98.8%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1U7rbDRT9XEXBY3VU5goLCA">model</a>&nbsp;|&nbsp;g8k9</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet50</td>
+      <td align="center">93.3%</td>
+      <td align="center">96.2%</td>
+      <td align="center">97.7%</td>
+      <td align="center">98.5%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1m91YFmycmD4xwGCDJVJFHQ">model</a>&nbsp;|&nbsp;s4gj</td>
+    </tr>
+    <tr>
+      <td align="center">ResNeXt50</td>
+      <td align="center">93.9%</td>
+      <td align="center">96.5%</td>
+      <td align="center">97.8%</td>
+      <td align="center">98.7%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1NVAcxCxIuXBlxW13hf82TQ">model</a>&nbsp;|&nbsp;dcrm</td>
+    </tr>
+  </tbody>
+</table>
+
+### CARS196 (Cropped)
+<table>
+  <thead>
+    <tr>
+      <th>Backbone</th>
+      <th>R@1</th>
+      <th>R@2</th>
+      <th>R@4</th>
+      <th>R@8</th>
+      <th>Download Link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">ResNet18</td>
+      <td align="center">96.7%</td>
+      <td align="center">98.3%</td>
+      <td align="center">99.0%</td>
+      <td align="center">99.5%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1U3KNMoS0zBErDLV8cYjpYg">model</a>&nbsp;|&nbsp;ttgs</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet34</td>
+      <td align="center">96.7%</td>
+      <td align="center">98.3%</td>
+      <td align="center">99.0%</td>
+      <td align="center">99.4%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/180KNBTZ_kX2trgShnok_IA">model</a>&nbsp;|&nbsp;htar</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet50</td>
+      <td align="center">96.6%</td>
+      <td align="center">98.1%</td>
+      <td align="center">98.7%</td>
+      <td align="center">99.2%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1V8hJylBM0Q2iHSIcQrYaCA">model</a>&nbsp;|&nbsp;kz98</td>
+    </tr>
+    <tr>
+      <td align="center">ResNeXt50</td>
+      <td align="center">96.8%</td>
+      <td align="center">98.2%</td>
+      <td align="center">98.9%</td>
+      <td align="center">99.3%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1xusMA7oWp1mEIl3IyYm3aQ">model</a>&nbsp;|&nbsp;9jxx</td>
+    </tr>
+  </tbody>
+</table>
+
+### CUB200 (Uncropped)
+<table>
+  <thead>
+    <tr>
+      <th>Backbone</th>
+      <th>R@1</th>
+      <th>R@2</th>
+      <th>R@4</th>
+      <th>R@8</th>
+      <th>Download Link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">ResNet18</td>
+      <td align="center">82.0%</td>
+      <td align="center">88.9%</td>
+      <td align="center">92.6%</td>
+      <td align="center">95.6%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1aANPHE8zw3t_5ZHpxMtBTg">model</a>&nbsp;|&nbsp;igua</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet34</td>
+      <td align="center">77.5%</td>
+      <td align="center">85.0%</td>
+      <td align="center">90.4%</td>
+      <td align="center">94.3%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/19z5kmrIbNb8WGdDIcOmd5g">model</a>&nbsp;|&nbsp;y71x</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet50</td>
+      <td align="center">77.8%</td>
+      <td align="center">84.9%</td>
+      <td align="center">89.9%</td>
+      <td align="center">93.7%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1x5ckVuS9pm7hMrynsmaS6w">model</a>&nbsp;|&nbsp;pa8c</td>
+    </tr>
+    <tr>
+      <td align="center">ResNeXt50</td>
+      <td align="center">80.1%</td>
+      <td align="center">86.8%</td>
+      <td align="center">91.5%</td>
+      <td align="center">94.8%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/19qkoDtZwCdQpN-bJ2FiP9g">model</a>&nbsp;|&nbsp;u37j</td>
+    </tr>
+  </tbody>
+</table>
+
+### CUB200 (Cropped)
+<table>
+  <thead>
+    <tr>
+      <th>Backbone</th>
+      <th>R@1</th>
+      <th>R@2</th>
+      <th>R@4</th>
+      <th>R@8</th>
+      <th>Download Link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">ResNet18</td>
+      <td align="center">89.0%</td>
+      <td align="center">93.1%</td>
+      <td align="center">95.9%</td>
+      <td align="center">97.5%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/10kONUyM4zosjZhEXcix_Qg">model</a>&nbsp;|&nbsp;vn7c</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet34</td>
+      <td align="center">86.0%</td>
+      <td align="center">91.2%</td>
+      <td align="center">94.7%</td>
+      <td align="center">96.8%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1eY5_ISeaZyjTKm6r-9yOeA">model</a>&nbsp;|&nbsp;w2m4</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet50</td>
+      <td align="center">85.9%</td>
+      <td align="center">91.4%</td>
+      <td align="center">94.5%</td>
+      <td align="center">96.4%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1srBQqU_vYzoTr4Mx7UV6Nw">model</a>&nbsp;|&nbsp;vqcg</td>
+    </tr>
+    <tr>
+      <td align="center">ResNeXt50</td>
+      <td align="center">86.3%</td>
+      <td align="center">91.3%</td>
+      <td align="center">94.5%</td>
+      <td align="center">96.6%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/14g64iGZCR4Txox2-40SAFQ">model</a>&nbsp;|&nbsp;tkwc</td>
+    </tr>
+  </tbody>
+</table>
+
+### SOP
+<table>
+  <thead>
+    <tr>
+      <th>Backbone</th>
+      <th>R@1</th>
+      <th>R@10</th>
+      <th>R@100</th>
+      <th>R@1000</th>
+      <th>Download Link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">ResNet18</td>
+      <td align="center">89.5%</td>
+      <td align="center">95.1%</td>
+      <td align="center">97.6%</td>
+      <td align="center">99.1%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1UTgAZga6o7yx13oDx8VK8g">model</a>&nbsp;|&nbsp;6kun</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet34</td>
+      <td align="center">90.2%</td>
+      <td align="center">95.3%</td>
+      <td align="center">97.4%</td>
+      <td align="center">98.9%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1KSx-AaOYfIdZkk9Z-zyl8Q">model</a>&nbsp;|&nbsp;kdzt</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet50</td>
+      <td align="center">85.3%</td>
+      <td align="center">90.7%</td>
+      <td align="center">93.9%</td>
+      <td align="center">96.8%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1_xaiZKwHp3BAp0U1K1ImrQ">model</a>&nbsp;|&nbsp;vsps</td>
+    </tr>
+    <tr>
+      <td align="center">ResNeXt50</td>
+      <td align="center">87.8%</td>
+      <td align="center">93.2%</td>
+      <td align="center">96.0%</td>
+      <td align="center">98.1%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1HCzf6ROjePEyKWs-h3kDsA">model</a>&nbsp;|&nbsp;8588</td>
+    </tr>
+  </tbody>
+</table>
+
+### In-shop
+<table>
+  <thead>
+    <tr>
+      <th>Backbone</th>
+      <th>R@1</th>
+      <th>R@10</th>
+      <th>R@20</th>
+      <th>R@30</th>
+      <th>R@40</th>
+      <th>R@50</th>
+      <th>Download Link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">ResNet18</td>
+      <td align="center">76.5%</td>
+      <td align="center">92.0%</td>
+      <td align="center">94.2%</td>
+      <td align="center">95.2%</td>
+      <td align="center">95.8%</td>
+      <td align="center">96.3%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/14-TdMqY5zxhPjjzEyWKnbw">model</a>&nbsp;|&nbsp;czd3</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet34</td>
+      <td align="center">83.1%</td>
+      <td align="center">95.0%</td>
+      <td align="center">96.5%</td>
+      <td align="center">97.1%</td>
+      <td align="center">97.4%</td>
+      <td align="center">97.7%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1XV3LcHc8nYrJDV-Z-hAkfw">model</a>&nbsp;|&nbsp;1n2h</td>
+    </tr>
+    <tr>
+      <td align="center">ResNet50</td>
+      <td align="center">78.7%</td>
+      <td align="center">93.2%</td>
+      <td align="center">95.2%</td>
+      <td align="center">96.1%</td>
+      <td align="center">96.7%</td>
+      <td align="center">97.0%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1yqwTTiGKWnZfkoSZs1LuvQ">model</a>&nbsp;|&nbsp;6dh2</td>
+    </tr>
+    <tr>
+      <td align="center">ResNeXt50</td>
+      <td align="center">87.7%</td>
+      <td align="center">96.7%</td>
+      <td align="center">97.7%</td>
+      <td align="center">98.1%</td>
+      <td align="center">98.4%</td>
+      <td align="center">98.6%</td>
+      <td align="center"><a href="https://pan.baidu.com/s/1Kf0Tq_q2ODTAp3RXV2_idQ">model</a>&nbsp;|&nbsp;xam8</td>
+    </tr>
+  </tbody>
+</table>
 
 ## Results
-There are some difference between this implementation and official implementation:
-1. The image sizes of `Multi-Scale Training` are (640, 672, 704, 736, 768, 800) for `coco` dataset;
-2. The image sizes of `Multi-Scale Training` are (800, 832, 864, 896, 928, 960, 992, 1024) for `cityscapes` dataset;
-3. No `RandomCrop` used;
-4. Learning rate policy is `WarmupCosineLR`;
 
-<table>
-	<tbody>
-		<!-- START TABLE -->
-		<!-- TABLE HEADER -->
-		<th>Name</th>
-		<th>train time (s/iter)</th>
-		<th>inference time (s/im)</th>
-		<th>train mem (GB)</th>
-		<th>PA</br>%</th>
-		<th>mean PA %</th>
-		<th>mean IoU %</th>
-		<th>FW IoU %</th>
-		<th>download link</th>
-		<!-- TABLE BODY -->
-		<!-- ROW: r50 -->
-		<tr>
-			<td align="center"><a href="configs/r50.yaml">R50</a></td>
-			<td align="center">1.04</td>
-			<td align="center">0.11</td>
-			<td align="center">11.14</td>
-			<td align="center">80.49</td>
-			<td align="center">53.92</td>
-			<td align="center">42.71</td>
-			<td align="center">68.69</td>
-			<td align="center"><a href="https://pan.baidu.com/s/1jP7zWezVPBZWx_9LjJCgWg">model</a>&nbsp;|&nbsp;xxi8</td>
-		</tr>
-		<!-- ROW: r101 -->
-		<tr>
-			<td align="center"><a href="configs/r101_coco.yaml">R101</a></td>
-			<td align="center">1.55</td>
-			<td align="center">0.18</td>
-			<td align="center">17.92</td>
-			<td align="center">81.16</td>
-			<td align="center">54.54</td>
-			<td align="center">43.61</td>
-			<td align="center">69.50</td>
-			<td align="center"><a href="https://pan.baidu.com/s/1BeGS7gckGAczd1euB55EFA">model</a>&nbsp;|&nbsp;1jhd</td>
-		</tr>
-		<!-- ROW: r152 -->
-		<tr>
-			<td align="center"><a href="configs/r152_coco.yaml">R152</a></td>
-			<td align="center">1.95</td>
-			<td align="center">0.23</td>
-			<td align="center">23.88</td>
-			<td align="center">81.73</td>
-			<td align="center">56.53</td>
-			<td align="center">45.15</td>
-			<td align="center">70.40</td>
-			<td align="center"><a href="https://pan.baidu.com/s/1c-AWtejmmQs2pk_uNu_kYA">model</a>&nbsp;|&nbsp;wka6</td>
-		</tr>
-	</tbody>
-</table>
+- CAR/CUB (Uncropped)
+
+![CAR/CUB_Uncropped](results/sota_car_cub.png)
+
+- CAR/CUB (Cropped)
+
+![CAR/CUB_Cropped](results/sota_car_cub_crop.png)
+
+- SOP
+
+![SOP](results/sota_sop.png)
+
+- ISC
+
+![ISC](results/sota_isc.png)
