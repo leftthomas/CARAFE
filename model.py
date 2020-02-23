@@ -1,61 +1,30 @@
 import torch
 import torch.nn as nn
-from backbone import eca_mobilenet_v2
-from torch.nn import functional as F
+import torch.nn.functional as F
+from torchvision.models.resnet import resnet18, resnet34, resnet50, resnext50_32x4d
 
 
 class Model(nn.Module):
-    def __init__(self, ensemble_size, meta_class_size, feature_dim, share_type='block5'):
+    def __init__(self, backbone_type='resnet18', feature_dim=128):
         super(Model, self).__init__()
 
-        # configs
-        self.ensemble_size = ensemble_size
-        module_names = ['conv', 'block1', 'block2', 'block3', 'block4', 'block5', 'block6', 'block7', 'last_conv']
-        if share_type != 'none':
-            common_module_names = module_names[:module_names.index(share_type) + 1]
-            individual_module_names = module_names[module_names.index(share_type) + 1:]
-        else:
-            common_module_names, individual_module_names = [], module_names
+        # backbone
+        backbones = {'resnet18': (resnet18, 1), 'resnet34': (resnet34, 1), 'resnet50': (resnet50, 4),
+                     'resnext50': (resnext50_32x4d, 4)}
+        backbone, expansion = backbones[backbone_type]
 
-        # common features
-        self.head = []
-        for name, module in eca_mobilenet_v2(pretrained=True, last_channel=feature_dim,
-                                             num_classes=meta_class_size).named_modules():
-            if name in common_module_names:
-                self.head.append(module)
-        self.head = nn.Sequential(*self.head)
-        print("# trainable common feature parameters:", sum(param.numel() if param.requires_grad else 0 for
-                                                            param in self.head.parameters()))
-
-        # individual features
-        self.tails = []
-        for i in range(ensemble_size):
-            tail = []
-            for name, module in eca_mobilenet_v2(pretrained=True, last_channel=feature_dim,
-                                                 num_classes=meta_class_size).named_modules():
-                if name in individual_module_names:
-                    tail.append(module)
-            tail = nn.Sequential(*tail)
-            self.tails.append(tail)
-        self.tails = nn.ModuleList(self.tails)
-        print("# trainable individual feature parameters:",
-              sum(param.numel() if param.requires_grad else 0 for param in
-                  self.tails.parameters()) // ensemble_size)
-
-        self.classifier = nn.ModuleList([nn.Linear(feature_dim, meta_class_size) for _ in range(ensemble_size)])
-        print("# trainable individual classifier parameters:",
-              sum(param.numel() if param.requires_grad else 0 for param in
-                  self.classifier.parameters()) // ensemble_size)
+        self.f = []
+        for name, module in backbone().named_children():
+            if not isinstance(module, nn.Linear):
+                self.f.append(module)
+        # encoder
+        self.f = nn.Sequential(*self.f)
+        # projection head
+        self.g = nn.Sequential(nn.Linear(512 * expansion, 512, bias=False), nn.BatchNorm1d(512),
+                               nn.ReLU(inplace=True), nn.Linear(512, feature_dim, bias=True))
 
     def forward(self, x):
-        shared = self.head(x)
-        features, out = [], []
-        for i in range(self.ensemble_size):
-            feature = self.tails[i](shared)
-            feature = torch.flatten(F.adaptive_avg_pool2d(feature, output_size=(1, 1)), start_dim=1)
-            features.append(feature)
-            classes = self.classifier[i](feature)
-            out.append(classes)
-        features = F.normalize(torch.stack(features, dim=1), dim=-1)
-        out = torch.stack(out, dim=1)
-        return features, out
+        x = self.f(x)
+        feature = torch.flatten(x, start_dim=1)
+        out = self.g(feature)
+        return F.normalize(feature, dim=-1), F.normalize(out, dim=-1)
