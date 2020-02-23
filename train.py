@@ -2,7 +2,6 @@ import argparse
 
 import pandas as pd
 import torch
-import torch.nn.functional as F
 from thop import profile, clever_format
 from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
@@ -46,16 +45,15 @@ def train(net, train_optimizer):
     return total_loss / total_num
 
 
-def eval(net, ranks):
+# test for one epoch, compute recall
+def val(net, ranks):
     net.eval()
     with torch.no_grad():
-        # obtain feature vectors for all data
+        # obtain feature vectors for test/query/gallery data
         for key in eval_dict.keys():
             eval_dict[key]['features'] = []
-            for inputs, labels in tqdm(eval_dict[key]['data_loader'], desc='processing {} data'.format(key)):
-                inputs, labels = inputs.cuda(), labels.cuda()
-                features, out = net(inputs)
-                features = F.normalize(torch.sum(features, dim=1), dim=-1)
+            for inputs, _, labels in tqdm(eval_dict[key]['data_loader'], desc='processing {} data'.format(key)):
+                features, out = net(inputs.cuda(non_blocking=True))
                 eval_dict[key]['features'].append(features)
             eval_dict[key]['features'] = torch.cat(eval_dict[key]['features'], dim=0)
 
@@ -66,9 +64,9 @@ def eval(net, ranks):
     else:
         acc_list = recall(eval_dict['test']['features'], test_data_set.labels, ranks)
     desc = ''
-    for index, id in enumerate(ranks):
-        desc += 'R@{}:{:.2f}% '.format(id, acc_list[index] * 100)
-        results['test_recall@{}'.format(recall_ids[index])].append(acc_list[index] * 100)
+    for index, recall_id in enumerate(ranks):
+        desc += 'R@{}:{:.2f}% '.format(recall_id, acc_list[index] * 100)
+        results['test_recall@{}'.format(recall_id)].append(acc_list[index] * 100)
     print(desc)
     return acc_list[0]
 
@@ -103,11 +101,9 @@ if __name__ == '__main__':
     train_data_set = ImageReader(data_path, data_name, 'train', crop_type)
     train_data_loader = DataLoader(train_data_set, batch_size, shuffle=True, num_workers=16, pin_memory=True,
                                    drop_last=True)
-    train_ext_data_set = ImageReader(data_path, data_name, 'train_ext', crop_type)
-    train_ext_data_loader = DataLoader(train_ext_data_set, batch_size, shuffle=False, num_workers=16, pin_memory=True)
     test_data_set = ImageReader(data_path, data_name, 'query' if data_name == 'isc' else 'test', crop_type)
     test_data_loader = DataLoader(test_data_set, batch_size, shuffle=False, num_workers=16, pin_memory=True)
-    eval_dict = {'train': {'data_loader': train_ext_data_loader}, 'test': {'data_loader': test_data_loader}}
+    eval_dict = {'test': {'data_loader': test_data_loader}}
     if data_name == 'isc':
         gallery_data_set = ImageReader(data_path, data_name, 'gallery', crop_type)
         gallery_data_loader = DataLoader(gallery_data_set, batch_size, shuffle=False, num_workers=16, pin_memory=True)
@@ -120,12 +116,12 @@ if __name__ == '__main__':
     print('# Model Params: {} FLOPs: {}'.format(params, flops))
     optimizer = Adam(model.parameters(), lr=1e-3)
 
-    # train and eval loop
+    # train and val loop
     best_recall = 0.0
     for epoch in range(1, num_epochs + 1):
         train_loss = train(model, optimizer)
         results['train_loss'].append(train_loss)
-        rank = eval(model, recalls)
+        rank = val(model, recalls)
         # save statistics
         data_frame = pd.DataFrame(data=results, index=range(1, epoch + 1))
         data_frame.to_csv('results/{}_statistics.csv'.format(save_name_pre), index_label='epoch')
@@ -133,9 +129,6 @@ if __name__ == '__main__':
         data_base = {}
         if rank > best_recall:
             best_recall = rank
-            data_base['train_images'] = train_ext_data_set.images
-            data_base['train_labels'] = train_ext_data_set.labels
-            data_base['train_features'] = eval_dict['train']['features']
             data_base['test_images'] = test_data_set.images
             data_base['test_labels'] = test_data_set.labels
             data_base['test_features'] = eval_dict['test']['features']

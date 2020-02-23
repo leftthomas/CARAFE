@@ -32,8 +32,7 @@ class ImageReader(Dataset):
         if crop_type == 'cropped' and data_name not in ['car', 'cub']:
             raise NotImplementedError('cropped data only works for car or cub dataset')
 
-        data_dict = torch.load('{}/{}/{}_data_dicts.pth'.format(data_path, data_name, crop_type))[
-            'train' if data_type == 'train_ext' else data_type]
+        data_dict = torch.load('{}/{}/{}_data_dicts.pth'.format(data_path, data_name, crop_type))[data_type]
         class_to_idx = dict(zip(sorted(data_dict), range(len(data_dict))))
 
         self.transform = get_transform(data_name, data_type)
