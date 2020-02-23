@@ -54,45 +54,35 @@ optional arguments:
 Adam optimizer is used with learning rate scheduling. The models are trained with batch size `32` on one 
 NVIDIA Tesla V100 (32G) GPUs. The images are preprocessed with resize (224, 224), random horizontal flip and normalize. 
 
-### Model Parameter
+### Model Parameter and FLOPs
 <table>
   <thead>
     <tr>
       <th>Backbone</th>
-      <th>CARS196</th>
-      <th>CUB200</th>
-      <th>SOP</th>
-      <th>In-shop</th>
+      <th>Params (M)</th>
+      <th>FLOPs (G)</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td align="center">ResNet18</td>
-      <td align="center">529,365,376</td>
-      <td align="center">529,365,376</td>
-      <td align="center">541,677,376</td>
-      <td align="center">533,797,696</td>
+      <td align="center">11.51</td>
+      <td align="center">1.82</td>
     </tr>
     <tr>
       <td align="center">ResNet34</td>
-      <td align="center">1,011,079,808</td>
-      <td align="center">1,011,079,808</td>
-      <td align="center">1,023,391,808</td>
-      <td align="center">1,015,512,128</td>
+      <td align="center">11.51</td>
+      <td align="center">1.82</td>
     </tr>
     <tr>
       <td align="center">ResNet50</td>
-      <td align="center">1,118,974,592</td>
-      <td align="center">1,118,974,592</td>
-      <td align="center">1,168,150,592</td>
-      <td align="center">1,136,677,952</td>
+      <td align="center">11.51</td>
+      <td align="center">1.82</td>
     </tr>
     <tr>
       <td align="center">ResNeXt50</td>
-      <td align="center">1,094,093,696</td>
-      <td align="center">1,094,093,696</td>
-      <td align="center">1,143,269,696</td>
-      <td align="center">1,111,797,056</td>
+      <td align="center">11.51</td>
+      <td align="center">1.82</td>
     </tr>
   </tbody>
 </table>
