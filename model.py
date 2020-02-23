@@ -14,7 +14,7 @@ class Model(nn.Module):
         backbone, expansion = backbones[backbone_type]
 
         self.f = []
-        for name, module in backbone().named_children():
+        for name, module in backbone(pretrained=True).named_children():
             if not isinstance(module, nn.Linear):
                 self.f.append(module)
         # encoder
