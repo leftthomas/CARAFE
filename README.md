@@ -27,17 +27,17 @@ You should download these datasets by yourself, and extract them into `$data_pat
 ## Usage
 ### Train Model
 ```
-python train.py --data_name cub --crop_type cropped --num_epochs 50
+python train.py --data_name cub --crop_type cropped --num_epochs 1000
 optional arguments:
 --data_path                   datasets path [default value is '/home/data']
 --data_name                   dataset name [default value is 'car'](choices=['car', 'cub', 'sop', 'isc'])
 --crop_type                   crop data or not, it only works for car or cub dataset [default value is 'uncropped'](choices=['uncropped', 'cropped'])
+--backbone_type               backbone type [default value is 'resnet18'](choices=['resnet18', 'resnet34', 'resnet50', 'resnext50'])
+--feature_dim                 feature dim [default value is 128]
+--temperature                 temperature used in softmax [default value is 0.5]
+--batch_size                  train batch size [default value is 512]
+--num_epochs                  train epochs number [default value is 500]
 --recalls                     selected recall [default value is '1,2,4,8']
---load_ids                    load already generated ids or not [default value is False]
---batch_size                  train batch size [default value is 32]
---num_epochs                  train epochs number [default value is 20]
---ensemble_size               ensemble model size [default value is 48]
---meta_class_size             meta class size [default value is 12]
 ```
 
 ### Inference Demo
@@ -52,15 +52,7 @@ optional arguments:
 
 ## Benchmarks
 Adam optimizer is used with learning rate scheduling. The models are trained with batch size `32` on one 
-NVIDIA Tesla V100 (32G) GPUs.
-
-The images are preprocessed with resize (256, 256), random horizontal flip and normalize. 
-
-For `CARS196` and `CUB200` datasets, ensemble size `48`, meta class size `12` and `20` epochs are used. 
-
-For `SOP` dataset, ensemble size `48`, meta class size `512` and `40` epochs are used.
-
-For `In-shop` dataset, ensemble size `48`, meta class size `192` and `40` epochs are used.
+NVIDIA Tesla V100 (32G) GPUs. The images are preprocessed with resize (224, 224), random horizontal flip and normalize. 
 
 ### Model Parameter
 <table>
