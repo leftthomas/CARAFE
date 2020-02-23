@@ -76,8 +76,8 @@ NVIDIA Tesla V100 (32G) GPUs. The images are preprocessed with resize (224, 224)
     </tr>
     <tr>
       <td align="center">ResNet50</td>
-      <td align="center">11.51</td>
-      <td align="center">1.82</td>
+      <td align="center">24.62</td>
+      <td align="center">4.11</td>
     </tr>
     <tr>
       <td align="center">ResNeXt50</td>
