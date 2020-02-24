@@ -3,6 +3,7 @@ import argparse
 import pandas as pd
 import torch
 from thop import profile, clever_format
+from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
@@ -20,19 +21,21 @@ def train(net, train_optimizer):
         feature_1, out_1 = net(pos_1)
         feature_2, out_2 = net(pos_2)
 
-        # [2*B, D]
-        out = torch.cat([out_1, out_2], dim=0)
-        # [2*B, 2*B]
-        sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / temperature)
-        mask = (torch.ones_like(sim_matrix) - torch.eye(2 * batch_size, device=sim_matrix.device)).bool()
-        # [2*B, 2*B-1]
-        sim_matrix = sim_matrix.masked_select(mask).view(2 * batch_size, -1)
-
-        # compute loss
-        pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / temperature)
-        # [2*B]
-        pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
-        loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
+        # # [2*B, D]
+        # out = torch.cat([out_1, out_2], dim=0)
+        # # [2*B, 2*B]
+        # sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / temperature)
+        # mask = (torch.ones_like(sim_matrix) - torch.eye(2 * batch_size, device=sim_matrix.device)).bool()
+        # # [2*B, 2*B-1]
+        # sim_matrix = sim_matrix.masked_select(mask).view(2 * batch_size, -1)
+        #
+        # # compute loss
+        # pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / temperature)
+        # # [2*B]
+        # pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
+        # loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
+        target = target.cuda(non_blocking=True)
+        loss = loss_criterion(out_1, target) + loss_criterion(out_2, target)
 
         train_optimizer.zero_grad()
         loss.backward()
@@ -110,11 +113,12 @@ if __name__ == '__main__':
         eval_dict['gallery'] = {'data_loader': gallery_data_loader}
 
     # model setup, model profile and optimizer config
-    model = Model(backbone_type, feature_dim).cuda()
+    model = Model(backbone_type, len(train_data_set.class_to_idx)).cuda()
     flops, params = profile(model, inputs=(torch.randn(1, 3, 224, 224).cuda(),))
     flops, params = clever_format([flops, params])
     print('# Model Params: {} FLOPs: {}'.format(params, flops))
     optimizer = Adam(model.parameters(), lr=1e-3)
+    loss_criterion = CrossEntropyLoss()
 
     # train and val loop
     best_recall = 0.0
