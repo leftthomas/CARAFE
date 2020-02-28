@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.autograd import Function
 from torch.nn.modules.module import Module
 
-from . import carafe_cuda, carafe_naive_cuda
+import carafe_cuda, carafe_naive_cuda
 
 
 class CARAFENaiveFunction(Function):
