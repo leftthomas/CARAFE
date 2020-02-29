@@ -8,7 +8,7 @@ NVCC_ARGS = [
     '-D__CUDA_NO_HALF2_OPERATORS__',
 ]
 
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 
 setup(
     name='carafe',
