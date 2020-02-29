@@ -1,6 +1,8 @@
 # CARAFE
 A PyTorch implementation of CARAFE based on ICCV 2019 paper [CARAFE: Content-Aware ReAssembly of FEatures](https://arxiv.org/abs/1905.02188).
 
+![Network Architecture image from the paper](structure.png)
+
 ## Requirements
 * [Anaconda](https://www.anaconda.com/download/)
 * PyTorch
