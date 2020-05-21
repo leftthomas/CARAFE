@@ -1,4 +1,4 @@
-from . import carafe_ext, carafe_naive_ext
+from src import carafe_ext, carafe_naive_ext
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
