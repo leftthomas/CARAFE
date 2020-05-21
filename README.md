@@ -21,7 +21,7 @@ pip install --upgrade git+https://github.com/leftthomas/CARAFE.git@master
 
 ## Example
 ```python
-from carafe import CARAFE, CARAFENaive
+from carafe.carafe import CARAFE, CARAFENaive
 module = CARAFE(kernel_size=5, group_size=1, scale_factor=4)
 module = CARAFENaive(kernel_size=5, group_size=1, scale_factor=4)
 ```

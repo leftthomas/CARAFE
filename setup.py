@@ -17,24 +17,26 @@ setup(
     ext_modules=[
         CUDAExtension(
             'carafe_cuda',
-            ['src/carafe_cuda.cpp', 'src/carafe_cuda_kernel.cu'],
+            ['carafe/carafe_cuda.cpp', 'carafe/carafe_cuda_kernel.cu'],
             extra_compile_args={
                 'cxx': [],
                 'nvcc': NVCC_ARGS
             }),
         CUDAExtension(
             'carafe_naive_cuda',
-            ['src/carafe_naive_cuda.cpp', 'src/carafe_naive_cuda_kernel.cu'],
+            ['carafe/carafe_naive_cuda.cpp', 'carafe/carafe_naive_cuda_kernel.cu'],
             extra_compile_args={
                 'cxx': [],
                 'nvcc': NVCC_ARGS
             }),
         CppExtension(
             'carafe_ext',
-            ['src/carafe_ext.cpp']),
+            ['carafe/carafe_ext.cpp']),
         CppExtension(
             'carafe_naive_ext',
-            ['src/carafe_naive_ext.cpp'])
+            ['carafe/carafe_naive_ext.cpp'])
     ],
     cmdclass={'build_ext': BuildExtension},
+    packages=[''],
+    zip_safe=True,
     install_requires=['torch'])
