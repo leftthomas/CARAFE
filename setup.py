@@ -1,6 +1,6 @@
 from setuptools import setup
 
-from torch.utils.cpp_extension import BuildExtension, CUDAExtension
+from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CppExtension
 
 NVCC_ARGS = [
     '-D__CUDA_NO_HALF_OPERATORS__',
@@ -28,7 +28,13 @@ setup(
             extra_compile_args={
                 'cxx': [],
                 'nvcc': NVCC_ARGS
-            })
+            }),
+        CppExtension(
+            'carafe_ext',
+            ['src/carafe_ext.cpp']),
+        CppExtension(
+            'carafe_naive_ext',
+            ['src/carafe_naive_ext.cpp'])
     ],
     cmdclass={'build_ext': BuildExtension},
     packages=[''],
