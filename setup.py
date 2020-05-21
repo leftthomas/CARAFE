@@ -37,5 +37,4 @@ setup(
             ['src/carafe_naive_ext.cpp'])
     ],
     cmdclass={'build_ext': BuildExtension},
-    packages=[''],
     install_requires=['torch'])
