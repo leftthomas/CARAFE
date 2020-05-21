@@ -31,6 +31,4 @@ setup(
             })
     ],
     cmdclass={'build_ext': BuildExtension},
-    packages=[''],
-    zip_safe=True,
     install_requires=['torch'])
