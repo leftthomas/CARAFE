@@ -1,10 +1,10 @@
+import carafe_ext
+import carafe_naive_ext
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
 from torch.nn.modules.module import Module
-
-import carafe_cuda, carafe_naive_cuda
 
 
 class CARAFENaiveFunction(Function):
@@ -26,8 +26,8 @@ class CARAFENaiveFunction(Function):
         n, c, h, w = features.size()
         output = features.new_zeros((n, c, h * scale_factor, w * scale_factor))
         if features.is_cuda:
-            carafe_naive_cuda.forward(features, masks, kernel_size, group_size,
-                                      scale_factor, output)
+            carafe_naive_ext.forward(features, masks, kernel_size, group_size,
+                                     scale_factor, output)
         else:
             raise NotImplementedError
 
@@ -46,9 +46,9 @@ class CARAFENaiveFunction(Function):
 
         grad_input = torch.zeros_like(features)
         grad_masks = torch.zeros_like(masks)
-        carafe_naive_cuda.backward(grad_output.contiguous(), features, masks,
-                                   kernel_size, group_size, scale_factor,
-                                   grad_input, grad_masks)
+        carafe_naive_ext.backward(grad_output.contiguous(), features, masks,
+                                  kernel_size, group_size, scale_factor,
+                                  grad_input, grad_masks)
 
         return grad_input, grad_masks, None, None, None
 
@@ -94,9 +94,9 @@ class CARAFEFunction(Function):
         rfeatures = features.new_zeros(features.size(), requires_grad=False)
         rmasks = masks.new_zeros(masks.size(), requires_grad=False)
         if features.is_cuda:
-            carafe_cuda.forward(features, rfeatures, masks, rmasks,
-                                kernel_size, group_size, scale_factor, routput,
-                                output)
+            carafe_ext.forward(features, rfeatures, masks, rmasks,
+                               kernel_size, group_size, scale_factor, routput,
+                               output)
         else:
             raise NotImplementedError
 
@@ -119,10 +119,10 @@ class CARAFEFunction(Function):
         rgrad_masks = torch.zeros_like(masks, requires_grad=False)
         grad_input = torch.zeros_like(features, requires_grad=False)
         grad_masks = torch.zeros_like(masks, requires_grad=False)
-        carafe_cuda.backward(grad_output.contiguous(), rfeatures, masks,
-                             kernel_size, group_size, scale_factor,
-                             rgrad_output, rgrad_input_hs, rgrad_input,
-                             rgrad_masks, grad_input, grad_masks)
+        carafe_ext.backward(grad_output.contiguous(), rfeatures, masks,
+                            kernel_size, group_size, scale_factor,
+                            rgrad_output, rgrad_input_hs, rgrad_input,
+                            rgrad_masks, grad_input, grad_masks)
         return grad_input, grad_masks, None, None, None, None
 
 
