@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
@@ -17,19 +17,20 @@ setup(
     ext_modules=[
         CUDAExtension(
             'carafe_ext',
-            ['src/carafe_ext.cpp', 'src/carafe_cuda.cpp', 'src/carafe_cuda_kernel.cu'],
+            ['carafe/src/carafe_ext.cpp', 'carafe/src/carafe_cuda.cpp', 'carafe/src/carafe_cuda_kernel.cu'],
             extra_compile_args={
                 'cxx': [],
                 'nvcc': NVCC_ARGS
             }),
         CUDAExtension(
             'carafe_naive_ext',
-            ['src/carafe_naive_ext.cpp', 'src/carafe_naive_cuda.cpp', 'src/carafe_naive_cuda_kernel.cu'],
+            ['carafe/src/carafe_naive_ext.cpp', 'carafe/src/carafe_naive_cuda.cpp', 'carafe/src/carafe_naive_cuda_kernel.cu'],
             extra_compile_args={
                 'cxx': [],
                 'nvcc': NVCC_ARGS
             })
     ],
+    packages=find_packages(exclude=('test',)),
     package_data={'.': ['*.so']},
     cmdclass={'build_ext': BuildExtension},
     zip_safe=False,

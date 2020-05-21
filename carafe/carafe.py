@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
 from torch.nn.modules.module import Module
-from . import carafe_ext, carafe_naive_ext
+import carafe_ext, carafe_naive_ext
 
 
 class CARAFENaiveFunction(Function):
