@@ -31,7 +31,6 @@ setup(
             })
     ],
     packages=find_packages(exclude=('test',)),
-    package_data={'.': ['*.so']},
     cmdclass={'build_ext': BuildExtension},
     zip_safe=False,
     install_requires=['torch>=1.5'])
