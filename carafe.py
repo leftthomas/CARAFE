@@ -1,9 +1,11 @@
-from . import carafe_ext, carafe_naive_ext
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from mmcv.cnn import UPSAMPLE_LAYERS, normal_init, xavier_init
 from torch.autograd import Function
 from torch.nn.modules.module import Module
+
+from . import carafe_ext, carafe_naive_ext
 
 
 class CARAFENaiveFunction(Function):
@@ -93,9 +95,8 @@ class CARAFEFunction(Function):
         rfeatures = features.new_zeros(features.size(), requires_grad=False)
         rmasks = masks.new_zeros(masks.size(), requires_grad=False)
         if features.is_cuda:
-            carafe_ext.forward(features, rfeatures, masks, rmasks,
-                               kernel_size, group_size, scale_factor, routput,
-                               output)
+            carafe_ext.forward(features, rfeatures, masks, rmasks, kernel_size,
+                               group_size, scale_factor, routput, output)
         else:
             raise NotImplementedError
 
@@ -156,6 +157,7 @@ class CARAFE(Module):
                                     self.group_size, self.scale_factor)
 
 
+@UPSAMPLE_LAYERS.register_module(name='carafe')
 class CARAFEPack(nn.Module):
     """ A unified package of CARAFE upsampler that contains:
     1) channel compressor 2) content encoder 3) CARAFE op
@@ -208,12 +210,8 @@ class CARAFEPack(nn.Module):
     def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.xavier_uniform_(m.weight)
-                if hasattr(m, 'bias') and m.bias is not None:
-                    nn.init.constant_(m.bias, val=0.0)
-        nn.init.normal_(self.content_encoder.weight, mean=0.0, std=0.001)
-        if hasattr(self.content_encoder, 'bias') and self.content_encoder.bias is not None:
-            nn.init.constant_(self.content_encoder.bias, val=0.0)
+                xavier_init(m, distribution='uniform')
+        normal_init(self.content_encoder, std=0.001)
 
     def kernel_normalizer(self, mask):
         mask = F.pixel_shuffle(mask, self.scale_factor)
