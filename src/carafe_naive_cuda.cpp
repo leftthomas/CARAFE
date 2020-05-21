@@ -18,9 +18,9 @@ int CARAFENAIVEBackwardLaucher(const at::Tensor top_grad,
                                const int height, const int width,
                                at::Tensor bottom_grad, at::Tensor mask_grad);
 
-#define CHECK_CUDA(x) AT_CHECK(x.type().is_cuda(), #x, " must be a CUDAtensor ")
+#define CHECK_CUDA(x) TORCH_CHECK(x.device().is_cuda(), #x, " must be a CUDAtensor ")
 #define CHECK_CONTIGUOUS(x) \
-  AT_CHECK(x.is_contiguous(), #x, " must be contiguous ")
+  TORCH_CHECK(x.is_contiguous(), #x, " must be contiguous ")
 #define CHECK_INPUT(x) \
   CHECK_CUDA(x);       \
   CHECK_CONTIGUOUS(x)
@@ -66,10 +66,4 @@ int carafe_naive_backward_cuda(at::Tensor top_grad, at::Tensor features,
                              data_height, data_width, bottom_grad, mask_grad);
 
   return 1;
-}
-
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("forward", &carafe_naive_forward_cuda, "carafe_naive forward (CUDA)");
-  m.def("backward", &carafe_naive_backward_cuda,
-        "carafe_naive backward (CUDA)");
 }
